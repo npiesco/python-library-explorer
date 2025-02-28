@@ -1,4 +1,5 @@
 import { QueryClient } from "@tanstack/react-query";
+import type { DefaultOptions } from "@tanstack/react-query";
 
 interface ExtensionMessageResponse {
   error?: string;
@@ -47,22 +48,24 @@ export async function sendExtensionMessage(type: string, data: unknown): Promise
   });
 }
 
-export const queryClient = new QueryClient({
-  defaultOptions: {
-    queries: {
-      refetchInterval: false,
-      refetchOnWindowFocus: false,
-      staleTime: Infinity,
-      retry: false,
-      onError: (error) => {
-        console.error('Query error:', error);
-      }
-    },
-    mutations: {
-      retry: false,
-      onError: (error) => {
-        console.error('Mutation error:', error);
-      }
-    },
+const defaultOptions: DefaultOptions = {
+  queries: {
+    refetchInterval: false,
+    refetchOnWindowFocus: false,
+    staleTime: Infinity,
+    retry: false,
+    onError: (error) => {
+      console.error('Query error:', error);
+    }
   },
+  mutations: {
+    retry: false,
+    onError: (error) => {
+      console.error('Mutation error:', error);
+    }
+  },
+};
+
+export const queryClient = new QueryClient({
+  defaultOptions,
 });
