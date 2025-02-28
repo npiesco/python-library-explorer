@@ -8,7 +8,7 @@ interface HelpDisplayProps {
 }
 
 export function HelpDisplay({ module }: HelpDisplayProps) {
-  const { data: helpText, isLoading } = useQuery({
+  const { data: helpText, isLoading } = useQuery<string>({
     queryKey: ["/api/modules/help", module],
     enabled: !!module,
   });
@@ -30,7 +30,7 @@ export function HelpDisplay({ module }: HelpDisplayProps) {
     <Card>
       <CardContent className="p-4">
         <ScrollArea className="h-[400px]">
-          <pre className="whitespace-pre-wrap font-mono text-sm">{helpText}</pre>
+          <pre className="whitespace-pre-wrap font-mono text-sm">{helpText || ""}</pre>
         </ScrollArea>
       </CardContent>
     </Card>

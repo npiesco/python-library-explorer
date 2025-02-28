@@ -7,28 +7,31 @@ import { Card, CardContent } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { Search, Package } from "lucide-react";
+import { Search } from "lucide-react";
 import type { ModuleAttribute } from "@shared/schema";
+import { apiRequest } from "@/lib/queryClient";
 
 export default function ModuleExplorer() {
   const [selectedModule, setSelectedModule] = useState<string>("");
   const [searchQuery, setSearchQuery] = useState<string>("");
 
-  const { data: moduleData, isLoading } = useQuery({
+  const { data: moduleData, isLoading } = useQuery<ModuleAttribute[]>({
     queryKey: ["/api/modules", selectedModule],
     enabled: !!selectedModule,
   });
 
   const { mutate: searchModules } = useMutation({
-    mutationFn: async (query: string) => {
-      const response = await fetch(`/api/modules/search?q=${query}`);
-      if (!response.ok) throw new Error("Search failed");
+    mutationFn: async () => {
+      const response = await apiRequest("POST", "/api/modules/search", { 
+        moduleName: selectedModule,
+        query: searchQuery 
+      });
       return response.json();
     },
   });
 
   return (
-    <div className="w-[800px] h-[600px] p-4">
+    <div className="p-4">
       <Tabs defaultValue="explorer" className="w-full">
         <TabsList className="mb-4">
           <TabsTrigger value="explorer">Module Explorer</TabsTrigger>
@@ -44,7 +47,12 @@ export default function ModuleExplorer() {
                   value={selectedModule}
                   onChange={(e) => setSelectedModule(e.target.value)}
                 />
-                <Button variant="outline" onClick={() => searchModules(searchQuery)}>
+                <Input
+                  placeholder="Search attributes..."
+                  value={searchQuery}
+                  onChange={(e) => setSearchQuery(e.target.value)}
+                />
+                <Button variant="outline" onClick={() => searchModules()}>
                   <Search className="w-4 h-4 mr-2" />
                   Search
                 </Button>
@@ -52,7 +60,7 @@ export default function ModuleExplorer() {
 
               <div className="grid grid-cols-2 gap-4">
                 <ModuleTree
-                  data={moduleData as ModuleAttribute[]}
+                  data={moduleData}
                   isLoading={isLoading}
                   onSelect={(attr) => setSelectedModule(attr)}
                 />

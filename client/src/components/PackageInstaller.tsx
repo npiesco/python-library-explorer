@@ -1,20 +1,22 @@
 import { useState } from "react";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
-import { useQuery, useMutation, queryClient } from "@tanstack/react-query";
+import { useQuery, useMutation } from "@tanstack/react-query";
 import { Form, FormField, FormItem, FormLabel, FormControl } from "@/components/ui/form";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { Progress } from "@/components/ui/progress";
+import { Card, CardContent } from "@/components/ui/card";
 import { insertPackageSchema } from "@shared/schema";
 import { apiRequest } from "@/lib/queryClient";
 import { Package, Download } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
+import { queryClient } from "@/lib/queryClient";
 
 export function PackageInstaller() {
   const [installing, setInstalling] = useState(false);
   const { toast } = useToast();
-  
+
   const form = useForm({
     resolver: zodResolver(insertPackageSchema),
     defaultValues: {
@@ -25,7 +27,7 @@ export function PackageInstaller() {
   });
 
   const { mutate: installPackage } = useMutation({
-    mutationFn: async (data) => {
+    mutationFn: async (data: any) => {
       setInstalling(true);
       const response = await apiRequest("POST", "/api/packages/install", data);
       return response.json();
@@ -38,7 +40,7 @@ export function PackageInstaller() {
       });
       form.reset();
     },
-    onError: (error) => {
+    onError: (error: Error) => {
       toast({
         title: "Failed to install package",
         description: error.message,

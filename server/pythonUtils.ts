@@ -33,8 +33,16 @@ export async function getModuleAttributes(moduleName: string): Promise<ModuleAtt
     print(json.dumps(attrs))
     "
   `);
-  
+
   return JSON.parse(stdout);
+}
+
+export async function searchModuleAttributes(moduleName: string, query: string): Promise<ModuleAttribute[]> {
+  const allAttributes = await getModuleAttributes(moduleName);
+  return allAttributes.filter(attr => 
+    attr.name.toLowerCase().includes(query.toLowerCase()) ||
+    attr.type.toLowerCase().includes(query.toLowerCase())
+  );
 }
 
 export async function getModuleHelp(moduleName: string): Promise<string> {
@@ -44,6 +52,6 @@ export async function getModuleHelp(moduleName: string): Promise<string> {
     help(${moduleName})
     "
   `);
-  
+
   return stdout;
 }

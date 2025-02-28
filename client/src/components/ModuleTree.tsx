@@ -1,4 +1,4 @@
-import { Tree, TreeItem } from "lucide-react";
+import { FolderTree, FileCode } from "lucide-react";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Skeleton } from "@/components/ui/skeleton";
 import type { ModuleAttribute } from "@shared/schema";
@@ -23,7 +23,7 @@ export function ModuleTree({ data, isLoading, onSelect }: ModuleTreeProps) {
   if (!data?.length) {
     return (
       <div className="text-center py-8 text-muted-foreground">
-        <Tree className="h-12 w-12 mx-auto mb-2" />
+        <FolderTree className="h-12 w-12 mx-auto mb-2" />
         <p>No module attributes found</p>
       </div>
     );
@@ -38,7 +38,7 @@ export function ModuleTree({ data, isLoading, onSelect }: ModuleTreeProps) {
             className="flex items-center p-2 rounded-md hover:bg-accent cursor-pointer"
             onClick={() => onSelect(attr.name)}
           >
-            <TreeItem className="h-4 w-4 mr-2" />
+            <FileCode className="h-4 w-4 mr-2" />
             <span>{attr.name}</span>
             <span className="ml-auto text-sm text-muted-foreground">{attr.type}</span>
           </div>
