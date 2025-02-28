@@ -8,10 +8,10 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { insertVirtualEnvSchema, type VirtualEnv } from "@shared/schema";
-import { apiRequest } from "@/lib/queryClient";
 import { FolderPlus, CheckCircle2, Loader2 } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { queryClient } from "@/lib/queryClient";
+import { sendExtensionMessage } from "@/lib/queryClient";
 
 export function VirtualEnvManager() {
   const [creating, setCreating] = useState(false);
@@ -27,17 +27,17 @@ export function VirtualEnvManager() {
   });
 
   const { data: virtualEnvs = [], isLoading } = useQuery<VirtualEnv[]>({
-    queryKey: ["/api/venv"],
+    queryKey: ["virtualEnvs"],
+    queryFn: async () => sendExtensionMessage("listVirtualEnvs", {}) as Promise<VirtualEnv[]>,
   });
 
   const { mutate: createVenv } = useMutation({
-    mutationFn: async (data: any) => {
+    mutationFn: async (data: { name: string; path: string }) => {
       setCreating(true);
-      const response = await apiRequest("POST", "/api/venv/create", data);
-      return response.json();
+      return sendExtensionMessage("createVirtualEnv", data);
     },
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["/api/venv"] });
+      queryClient.invalidateQueries({ queryKey: ["virtualEnvs"] });
       toast({
         title: "Virtual Environment Created",
         description: `Created new environment: ${form.getValues().name}`,
@@ -56,11 +56,10 @@ export function VirtualEnvManager() {
 
   const { mutate: setActive } = useMutation({
     mutationFn: async (id: number) => {
-      const response = await apiRequest("POST", `/api/venv/${id}/activate`, {});
-      return response.json();
+      return sendExtensionMessage("setActiveVirtualEnv", { id });
     },
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["/api/venv"] });
+      queryClient.invalidateQueries({ queryKey: ["virtualEnvs"] });
       toast({
         title: "Environment Activated",
         description: "Virtual environment switched successfully",
