@@ -3,6 +3,7 @@ import { useQuery, useMutation } from "@tanstack/react-query";
 import { PackageInstaller } from "@/components/PackageInstaller";
 import { ModuleTree } from "@/components/ModuleTree";
 import { HelpDisplay } from "@/components/HelpDisplay";
+import { VirtualEnvManager } from "@/components/VirtualEnvManager";
 import { Card, CardContent } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
@@ -31,11 +32,12 @@ export default function ModuleExplorer() {
   });
 
   return (
-    <div className="p-4">
+    <div className="space-y-4">
       <Tabs defaultValue="explorer" className="w-full">
         <TabsList className="mb-4">
           <TabsTrigger value="explorer">Module Explorer</TabsTrigger>
-          <TabsTrigger value="packages">Package Manager</TabsTrigger>
+          <TabsTrigger value="environments">Environments</TabsTrigger>
+          <TabsTrigger value="packages">Packages</TabsTrigger>
         </TabsList>
 
         <TabsContent value="explorer">
@@ -43,7 +45,7 @@ export default function ModuleExplorer() {
             <CardContent className="p-4">
               <div className="flex gap-2 mb-4">
                 <Input
-                  placeholder="Enter module name..."
+                  placeholder="Enter module name (e.g., numpy, pandas)..."
                   value={selectedModule}
                   onChange={(e) => setSelectedModule(e.target.value)}
                 />
@@ -68,6 +70,10 @@ export default function ModuleExplorer() {
               </div>
             </CardContent>
           </Card>
+        </TabsContent>
+
+        <TabsContent value="environments">
+          <VirtualEnvManager />
         </TabsContent>
 
         <TabsContent value="packages">

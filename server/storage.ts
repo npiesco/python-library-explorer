@@ -22,7 +22,8 @@ export class MemStorage implements IStorage {
 
   async createVirtualEnv(env: InsertVirtualEnv): Promise<VirtualEnv> {
     const id = this.currentId++;
-    const virtualEnv: VirtualEnv = { ...env, id };
+    // Ensure isActive is set to false by default if not provided
+    const virtualEnv: VirtualEnv = { ...env, id, isActive: env.isActive || false };
     this.virtualEnvs.set(id, virtualEnv);
     return virtualEnv;
   }
@@ -36,13 +37,18 @@ export class MemStorage implements IStorage {
   }
 
   async setActiveVirtualEnv(id: number): Promise<void> {
-    for (const env of this.virtualEnvs.values()) {
-      env.isActive = env.id === id;
+    // Deactivate all environments first
+    for (const [envId, env] of this.virtualEnvs.entries()) {
+      this.virtualEnvs.set(envId, { ...env, isActive: env.id === id });
     }
   }
 
   async installPackage(pkg: InsertPackage): Promise<Package> {
     const id = this.currentId++;
+    // Ensure required fields are present
+    if (!pkg.envId) {
+      throw new Error("Environment ID is required");
+    }
     const package_: Package = { ...pkg, id };
     this.packages.set(id, package_);
     return package_;
