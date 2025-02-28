@@ -10,24 +10,24 @@ import { Button } from "@/components/ui/button";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Search } from "lucide-react";
 import type { ModuleAttribute } from "@shared/schema";
-import { apiRequest } from "@/lib/queryClient";
+import { sendExtensionMessage } from "@/lib/queryClient";
 
 export default function ModuleExplorer() {
   const [selectedModule, setSelectedModule] = useState<string>("");
   const [searchQuery, setSearchQuery] = useState<string>("");
 
   const { data: moduleData, isLoading } = useQuery<ModuleAttribute[]>({
-    queryKey: ["/api/modules", selectedModule],
+    queryKey: ["moduleAttributes", selectedModule],
+    queryFn: () => sendExtensionMessage("getModuleAttributes", { moduleName: selectedModule }),
     enabled: !!selectedModule,
   });
 
   const { mutate: searchModules } = useMutation({
     mutationFn: async () => {
-      const response = await apiRequest("POST", "/api/modules/search", { 
+      return sendExtensionMessage("searchModuleAttributes", { 
         moduleName: selectedModule,
         query: searchQuery 
       });
-      return response.json();
     },
   });
 

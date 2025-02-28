@@ -4,14 +4,24 @@
   "version": "1.0",
   "description": "Interactive Python module explorer with virtual environment support",
   "permissions": [
+    "nativeMessaging",
     "storage",
     "tabs"
+  ],
+  "host_permissions": [
+    "http://localhost:5000/*"
   ],
   "action": {
     "default_popup": "index.html",
     "default_title": "Python Module Explorer"
   },
+  "background": {
+    "service_worker": "background.js",
+    "type": "module"
+  },
   "icons": {
-    "48": "data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHdpZHRoPSI0OCIgaGVpZ2h0PSI0OCIgdmlld0JveD0iMCAwIDI0IDI0IiBmaWxsPSJub25lIiBzdHJva2U9ImN1cnJlbnRDb2xvciIgc3Ryb2tlLXdpZHRoPSIyIiBzdHJva2UtbGluZWNhcD0icm91bmQiIHN0cm9rZS1saW5lam9pbj0icm91bmQiPjxwYXRoIGQ9Ik04IDJoOCIvPjxwYXRoIGQ9Ik04IDJoOCIvPjxwYXRoIGQ9Ik04IDJ2MjAiLz48cGF0aCBkPSJNMTYgMnYyMCIvPjxwYXRoIGQ9Ik00IDZoNCIvPjxwYXRoIGQ9Ik0xNiA2aDQiLz48cGF0aCBkPSJNNCAyMmg0Ii8+PHBhdGggZD0iTTE2IDIyaDQiLz48L3N2Zz4="
+    "16": "icons/icon16.svg",
+    "48": "icons/icon48.svg",
+    "128": "icons/icon128.svg"
   }
 }

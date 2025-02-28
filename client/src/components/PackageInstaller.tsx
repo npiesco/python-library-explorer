@@ -1,17 +1,17 @@
 import { useState } from "react";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
-import { useQuery, useMutation } from "@tanstack/react-query";
+import { useMutation } from "@tanstack/react-query";
 import { Form, FormField, FormItem, FormLabel, FormControl } from "@/components/ui/form";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { Progress } from "@/components/ui/progress";
 import { Card, CardContent } from "@/components/ui/card";
 import { insertPackageSchema } from "@shared/schema";
-import { apiRequest } from "@/lib/queryClient";
 import { Package, Download } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { queryClient } from "@/lib/queryClient";
+import { sendExtensionMessage } from "@/lib/queryClient";
 
 export function PackageInstaller() {
   const [installing, setInstalling] = useState(false);
@@ -27,13 +27,15 @@ export function PackageInstaller() {
   });
 
   const { mutate: installPackage } = useMutation({
-    mutationFn: async (data: any) => {
+    mutationFn: async (data: { name: string; version: string }) => {
       setInstalling(true);
-      const response = await apiRequest("POST", "/api/packages/install", data);
-      return response.json();
+      return sendExtensionMessage("installPackage", {
+        packageName: data.name,
+        version: data.version,
+      });
     },
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["/api/packages"] });
+      queryClient.invalidateQueries({ queryKey: ["packages"] });
       toast({
         title: "Package installed successfully",
         description: `Installed ${form.getValues().name}`,

@@ -6,8 +6,11 @@ import ModuleExplorer from "@/pages/ModuleExplorer";
 export default function App() {
   return (
     <QueryClientProvider client={queryClient}>
-      <div className="w-[800px] h-[600px] overflow-auto bg-background text-foreground p-4">
-        <h1 className="text-2xl font-bold mb-4">Python Module Explorer</h1>
+      <div className="w-[600px] h-[500px] overflow-auto bg-background text-foreground p-4">
+        <div className="flex items-center gap-2 mb-4">
+          <img src="/icons/icon48.svg" alt="Python Module Explorer" className="w-8 h-8" />
+          <h1 className="text-xl font-bold">Python Module Explorer</h1>
+        </div>
         <ModuleExplorer />
       </div>
       <Toaster />
