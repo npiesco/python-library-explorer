@@ -2,8 +2,56 @@ import { queryClient } from "./lib/queryClient";
 import { QueryClientProvider } from "@tanstack/react-query";
 import { Toaster } from "@/components/ui/toaster";
 import ModuleExplorer from "@/pages/ModuleExplorer";
+import { useEffect, useState } from "react";
+
+// Check if we're running as a Chrome extension
+const isExtension = typeof chrome !== 'undefined' && chrome.runtime && chrome.runtime.id;
 
 export default function App() {
+  const [extensionError, setExtensionError] = useState<string | null>(null);
+
+  useEffect(() => {
+    // Verify extension messaging is working
+    if (isExtension) {
+      chrome.runtime.sendMessage({ type: "PING" }, (response) => {
+        if (chrome.runtime.lastError) {
+          setExtensionError(`Extension error: ${chrome.runtime.lastError.message}`);
+        }
+      });
+    }
+  }, []);
+
+  if (!isExtension) {
+    return (
+      <div className="min-h-screen flex items-center justify-center">
+        <div className="text-center">
+          <h1 className="text-2xl font-bold mb-4">Python Module Explorer</h1>
+          <p className="text-muted-foreground">
+            This application can only run as a Chrome extension.
+            Please load it in Chrome as an unpacked extension.
+          </p>
+          <p className="text-sm text-muted-foreground mt-2">
+            See the INSTRUCTIONS.md file for installation steps.
+          </p>
+        </div>
+      </div>
+    );
+  }
+
+  if (extensionError) {
+    return (
+      <div className="min-h-screen flex items-center justify-center">
+        <div className="text-center">
+          <h1 className="text-2xl font-bold mb-4 text-destructive">Extension Error</h1>
+          <p className="text-muted-foreground">{extensionError}</p>
+          <p className="text-sm text-muted-foreground mt-2">
+            Please check that the extension is properly installed and try reloading.
+          </p>
+        </div>
+      </div>
+    );
+  }
+
   return (
     <QueryClientProvider client={queryClient}>
       <div className="w-[600px] h-[500px] overflow-auto bg-background text-foreground p-4">

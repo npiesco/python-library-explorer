@@ -20,6 +20,7 @@ type MessageData = {
   getModuleHelp: { moduleName: string };
   getModuleAttributes: { moduleName: string };
   searchModuleAttributes: { moduleName: string; query: string };
+  PING: {};
 };
 
 const port = chrome.runtime.connectNative('com.python.module.explorer');
@@ -36,6 +37,10 @@ port.onDisconnect.addListener(() => {
 
 // Message handlers for different operations
 const handlers = {
+  PING: async () => {
+    return { status: "ok" };
+  },
+
   createVirtualEnv: async (data: MessageData['createVirtualEnv']) => {
     return new Promise((resolve, reject) => {
       port.postMessage({ type: 'CREATE_VENV', ...data });
@@ -154,7 +159,7 @@ chrome.runtime.onMessage.addListener((request, _sender, sendResponse) => {
   const handler = handlers[request.type as keyof typeof handlers];
   if (handler) {
     handler(request.data)
-      .then(sendResponse)
+      .then(data => sendResponse({ data }))
       .catch((error: Error) => sendResponse({ error: error.message }));
     return true; // Will respond asynchronously
   }

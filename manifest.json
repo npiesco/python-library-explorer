@@ -5,11 +5,7 @@
   "description": "Interactive Python module explorer with virtual environment support",
   "permissions": [
     "nativeMessaging",
-    "storage",
-    "tabs"
-  ],
-  "host_permissions": [
-    "http://localhost:5000/*"
+    "storage"
   ],
   "action": {
     "default_popup": "index.html",
