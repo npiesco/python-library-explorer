@@ -11,9 +11,21 @@ export async function sendExtensionMessage(type: string, data: unknown): Promise
 
   // Check if we're in a Chrome extension context
   if (typeof chrome === 'undefined' || !chrome.runtime?.sendMessage) {
-    const error = 'Chrome extension APIs are not available. Make sure you are running this as a Chrome extension.';
-    if (DEBUG) console.error(error);
-    throw new Error(error);
+    // In web mode, fallback to API calls
+    const response = await fetch(`/api/${type.toLowerCase()}`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify(data),
+    });
+
+    if (!response.ok) {
+      const error = await response.text();
+      throw new Error(error);
+    }
+
+    return response.json();
   }
 
   return new Promise((resolve, reject) => {
@@ -42,14 +54,12 @@ export const queryClient = new QueryClient({
       refetchOnWindowFocus: false,
       staleTime: Infinity,
       retry: false,
-      // Add better error handling for queries
       onError: (error) => {
         console.error('Query error:', error);
       }
     },
     mutations: {
       retry: false,
-      // Add better error handling for mutations
       onError: (error) => {
         console.error('Mutation error:', error);
       }

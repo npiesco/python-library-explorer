@@ -11,7 +11,7 @@ export default function App() {
   const [extensionError, setExtensionError] = useState<string | null>(null);
 
   useEffect(() => {
-    // Verify extension messaging is working
+    // Verify extension messaging if we're in extension mode
     if (isExtension) {
       chrome.runtime.sendMessage({ type: "PING" }, (response) => {
         if (chrome.runtime.lastError) {
@@ -20,23 +20,6 @@ export default function App() {
       });
     }
   }, []);
-
-  if (!isExtension) {
-    return (
-      <div className="min-h-screen flex items-center justify-center">
-        <div className="text-center">
-          <h1 className="text-2xl font-bold mb-4">Python Module Explorer</h1>
-          <p className="text-muted-foreground">
-            This application can only run as a Chrome extension.
-            Please load it in Chrome as an unpacked extension.
-          </p>
-          <p className="text-sm text-muted-foreground mt-2">
-            See the INSTRUCTIONS.md file for installation steps.
-          </p>
-        </div>
-      </div>
-    );
-  }
 
   if (extensionError) {
     return (
@@ -54,7 +37,7 @@ export default function App() {
 
   return (
     <QueryClientProvider client={queryClient}>
-      <div className="w-[600px] h-[500px] overflow-auto bg-background text-foreground p-4">
+      <div className={`${isExtension ? 'w-[600px] h-[500px]' : 'min-h-screen'} overflow-auto bg-background text-foreground p-4`}>
         <div className="flex items-center gap-2 mb-4">
           <img src="/icons/icon48.svg" alt="Python Module Explorer" className="w-8 h-8" />
           <h1 className="text-xl font-bold">Python Module Explorer</h1>
