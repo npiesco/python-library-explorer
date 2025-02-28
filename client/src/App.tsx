@@ -39,7 +39,15 @@ export default function App() {
     <QueryClientProvider client={queryClient}>
       <div className={`${isExtension ? 'w-[600px] h-[500px]' : 'min-h-screen'} overflow-auto bg-background text-foreground p-4`}>
         <div className="flex items-center gap-2 mb-4">
-          <img src="/icons/icon48.svg" alt="Python Module Explorer" className="w-8 h-8" />
+          <img 
+            src={isExtension ? "icons/icon48.svg" : "/icons/icon48.svg"} 
+            alt="Python Module Explorer" 
+            className="w-8 h-8"
+            onError={(e) => {
+              // Fallback if the icon fails to load
+              e.currentTarget.src = isExtension ? "icons/icon.svg" : "/icons/icon.svg";
+            }}
+          />
           <h1 className="text-xl font-bold">Python Module Explorer</h1>
         </div>
         <ModuleExplorer />
