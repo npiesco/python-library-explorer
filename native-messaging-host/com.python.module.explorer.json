@@ -1,7 +1,7 @@
 {
   "name": "com.python.module.explorer",
   "description": "Python Module Explorer Native Messaging Host",
-  "path": "HOST_PATH_PLACEHOLDER/python_module_explorer_host.py",
+  "path": "${HOST_BASE_PATH}/native-messaging-host/python_module_explorer_host.py",
   "type": "stdio",
   "allowed_origins": [
     "chrome-extension://EXTENSION_ID_PLACEHOLDER/"

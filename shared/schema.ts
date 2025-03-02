@@ -1,37 +1,29 @@
-import { pgTable, text, serial, boolean } from "drizzle-orm/pg-core";
-import { createInsertSchema } from "drizzle-zod";
+// PythonLibraryExplorer/shared/schema.ts
 import { z } from "zod";
 
-export const virtualEnvs = pgTable("virtual_envs", {
-  id: serial("id").primaryKey(),
-  name: text("name").notNull(),
-  path: text("path").notNull(),
-  isActive: boolean("is_active").notNull().default(false),
+export const insertVirtualEnvSchema = z.object({
+  name: z.string().min(1, "Environment name is required"),
+  path: z.string().min(1, "Path is required"),
+  isActive: z.boolean().default(true),
 });
 
-export const packages = pgTable("packages", {
-  id: serial("id").primaryKey(),
-  name: text("name").notNull(),
-  version: text("version").notNull(),
-  envId: serial("env_id").references(() => virtualEnvs.id),
+export const insertPackageSchema = z.object({
+  name: z.string().min(1, "Package name is required"),
+  version: z.string().default("latest"),
+  envId: z.number(),
 });
 
-export const insertVirtualEnvSchema = createInsertSchema(virtualEnvs).pick({
-  name: true,
-  path: true,
-  isActive: true,
-});
-
-export const insertPackageSchema = createInsertSchema(packages).pick({
-  name: true,
-  version: true,
-  envId: true,
-});
+export type VirtualEnv = {
+  id: number;
+  name: string;
+  path: string;
+  isActive: boolean;
+  createdAt: Date;
+  updatedAt: Date;
+};
 
 export type InsertVirtualEnv = z.infer<typeof insertVirtualEnvSchema>;
-export type VirtualEnv = typeof virtualEnvs.$inferSelect;
 export type InsertPackage = z.infer<typeof insertPackageSchema>;
-export type Package = typeof packages.$inferSelect;
 
 export const moduleAttributeSchema = z.object({
   name: z.string(),
