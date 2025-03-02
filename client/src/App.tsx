@@ -72,7 +72,6 @@ export default function App() {
         <ModuleExplorer />
       </div>
       <Toaster />
-      <VirtualEnvManager />
     </QueryClientProvider>
   );
 }
