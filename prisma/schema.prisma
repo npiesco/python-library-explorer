@@ -17,6 +17,7 @@ model VirtualEnvironment {
   id        String   @id @default(uuid())
   name      String
   path      String
+  isActive  Boolean  @default(false)
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
   packages  Package[]
@@ -27,7 +28,7 @@ model Package {
   name        String
   version     String
   installedAt DateTime @default(now())
-  environment VirtualEnvironment @relation(fields: [envId], references: [id])
+  environment VirtualEnvironment @relation(fields: [envId], references: [id], onDelete: Cascade)
   envId       String
   modules     Module[]
 
@@ -38,7 +39,7 @@ model Module {
   id          String   @id @default(uuid())
   name        String
   docString   String?
-  package     Package  @relation(fields: [packageId], references: [id])
+  package     Package  @relation(fields: [packageId], references: [id], onDelete: Cascade)
   packageId   String
   attributes  ModuleAttribute[]
   createdAt   DateTime @default(now())
@@ -52,7 +53,7 @@ model ModuleAttribute {
   name      String
   type      String
   docString String?
-  module    Module   @relation(fields: [moduleId], references: [id])
+  module    Module   @relation(fields: [moduleId], references: [id], onDelete: Cascade)
   moduleId  String
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt

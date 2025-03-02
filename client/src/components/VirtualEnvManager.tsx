@@ -1,3 +1,4 @@
+// /PythonLibraryExplorer/client/src/components/VirtualEnvManager.tsx
 import { useState } from "react";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
@@ -6,16 +7,17 @@ import { Form, FormField, FormItem, FormLabel, FormControl, FormDescription } fr
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
-import { Badge } from "@/components/ui/badge";
 import { insertVirtualEnvSchema, type VirtualEnv } from "@shared/schema";
-import { FolderPlus, CheckCircle2, Loader2 } from "lucide-react";
+import { FolderPlus , Loader2 } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { queryClient } from "@/lib/queryClient";
 import { sendExtensionMessage } from "@/lib/queryClient";
+import { useVenvStore } from "@/lib/store";
 
 export function VirtualEnvManager() {
   const [creating, setCreating] = useState(false);
   const { toast } = useToast();
+  const { deactivateVenv } = useVenvStore();
 
   const form = useForm({
     resolver: zodResolver(insertVirtualEnvSchema),
@@ -55,14 +57,60 @@ export function VirtualEnvManager() {
   });
 
   const { mutate: setActive } = useMutation({
-    mutationFn: async (id: number) => {
-      return sendExtensionMessage("setActiveVirtualEnv", { id });
+    mutationFn: async (id: string) => {
+      return sendExtensionMessage("setActiveVenv", { id });
+    },
+    onSuccess: (_, id) => {
+      queryClient.invalidateQueries({ queryKey: ["virtualEnvs"] });
+      const env = virtualEnvs.find(e => e.id === id);
+      if (env) {
+        useVenvStore.getState().setActiveVenv(env);
+      }
+      toast({
+        title: "Environment Activated",
+        description: "Virtual environment switched successfully",
+      });
+    },
+  });
+
+  const { mutate: deactivate } = useMutation({
+    mutationFn: async () => {
+      return sendExtensionMessage("setActiveVenv", { id: null });
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["virtualEnvs"] });
+      useVenvStore.getState().setActiveVenv(null);
+      toast({
+        title: "Environment Deactivated",
+        description: "Virtual environment deactivated successfully",
+      });
+    },
+    onError: (error: Error) => {
+      toast({
+        title: "Failed to deactivate environment",
+        description: error.message,
+        variant: "destructive",
+      });
+    },
+  });
+
+  const { mutate: deleteVenv } = useMutation({
+    mutationFn: async (id: string) => {
+      if (!id) throw new Error("Environment ID is required");
+      return sendExtensionMessage("deleteVirtualEnv", { id });
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["virtualEnvs"] });
       toast({
-        title: "Environment Activated",
-        description: "Virtual environment switched successfully",
+        title: "Virtual Environment Deleted",
+        description: "Environment was successfully deleted",
+      });
+    },
+    onError: (error: Error) => {
+      toast({
+        title: "Failed to delete environment",
+        description: error.message,
+        variant: "destructive",
       });
     },
   });
@@ -83,9 +131,15 @@ export function VirtualEnvManager() {
               name="name"
               render={({ field }) => (
                 <FormItem>
-                  <FormLabel>Environment Name</FormLabel>
+                  <FormLabel htmlFor="venv-name">Environment Name</FormLabel>
                   <FormControl>
-                    <Input {...field} placeholder="my-project" />
+                    <Input 
+                      {...field} 
+                      id="venv-name"
+                      name="venv-name"
+                      placeholder="my-project" 
+                      autoComplete="off"
+                    />
                   </FormControl>
                   <FormDescription>
                     Choose a descriptive name for your virtual environment
@@ -116,30 +170,42 @@ export function VirtualEnvManager() {
             <div className="h-10 bg-muted rounded" />
           </div>
         ) : virtualEnvs.length > 0 ? (
-          <div className="space-y-2">
+          <div className="mt-4">
+            <h3 className="text-sm font-medium mb-2">Existing Environments</h3>
             {virtualEnvs.map((env) => (
-              <div
-                key={env.id}
-                className="flex items-center justify-between p-3 rounded-lg border bg-card hover:bg-accent/5"
-              >
-                <div className="flex items-center gap-2">
-                  <span className="font-medium">{env.name}</span>
-                  {env.isActive && (
-                    <Badge variant="secondary" className="bg-green-100 text-green-800">
-                      <CheckCircle2 className="h-3 w-3 mr-1" />
-                      Active
-                    </Badge>
-                  )}
+              <div key={env.id} className="flex items-center justify-between p-2 bg-muted rounded-md mb-2">
+                <div>
+                  <span className={env.isActive ? "font-bold" : ""}>{env.name}</span>
+                  <span className="text-sm text-muted-foreground ml-2">{env.path}</span>
                 </div>
-                {!env.isActive && (
+                <div className="flex gap-2">
+                  {env.isActive ? (
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      onClick={() => deactivate()}
+                    >
+                      Deactivate
+                    </Button>
+                  ) : (
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      onClick={() => setActive(env.id)}
+                    >
+                      Activate
+                    </Button>
+                  )}
                   <Button
-                    variant="outline"
+                    variant="destructive"
                     size="sm"
-                    onClick={() => setActive(env.id)}
+                    onClick={() => deleteVenv(env.id)}
+                    disabled={env.isActive}
+                    title={env.isActive ? "Cannot delete active environment" : undefined}
                   >
-                    Activate
+                    Delete
                   </Button>
-                )}
+                </div>
               </div>
             ))}
           </div>

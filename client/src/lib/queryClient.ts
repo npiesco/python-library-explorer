@@ -1,3 +1,4 @@
+// /PythonLibraryExplorer/client/src/lib/queryClient.ts
 import { QueryClient } from "@tanstack/react-query";
 import type { DefaultOptions } from "@tanstack/react-query";
 
@@ -12,13 +13,28 @@ export async function sendExtensionMessage(type: string, data: unknown): Promise
 
   // Check if we're in a Chrome extension context
   if (typeof chrome === 'undefined' || !chrome.runtime?.sendMessage) {
+    // Map message types to correct API endpoints and methods
+    const endpointMap: Record<string, { endpoint: string; method: string }> = {
+      listVirtualEnvs: { endpoint: 'venv', method: 'GET' },
+      createVirtualEnv: { endpoint: 'venv/create', method: 'POST' },
+      setActiveVenv: { endpoint: 'venv/setActive', method: 'POST' },
+      setActiveVirtualEnv: { endpoint: 'venv/setActive', method: 'POST' },
+      deleteVirtualEnv: { endpoint: 'venv', method: 'DELETE' },
+      installPackage: { endpoint: 'packages/install', method: 'POST' },
+      getModuleAttributes: { endpoint: 'modules', method: 'GET' },
+      getModuleHelp: { endpoint: 'modules/help', method: 'GET' },
+      searchModuleAttributes: { endpoint: 'modules/search', method: 'POST' }
+    };
+
+    const { endpoint, method } = endpointMap[type] || { endpoint: type.toLowerCase(), method: 'POST' };
+    
     // In web mode, fallback to API calls
-    const response = await fetch(`/api/${type.toLowerCase()}`, {
-      method: 'POST',
+    const response = await fetch(`/api/${endpoint}`, {
+      method,
       headers: {
         'Content-Type': 'application/json',
       },
-      body: JSON.stringify(data),
+      body: method === 'POST' ? JSON.stringify(data) : undefined,
     });
 
     if (!response.ok) {
@@ -53,19 +69,13 @@ const defaultOptions: DefaultOptions = {
     refetchInterval: false,
     refetchOnWindowFocus: false,
     staleTime: Infinity,
-    retry: false,
-    onError: (error) => {
-      console.error('Query error:', error);
-    }
+    retry: false
   },
   mutations: {
-    retry: false,
-    onError: (error) => {
-      console.error('Mutation error:', error);
-    }
-  },
+    retry: false
+  }
 };
 
 export const queryClient = new QueryClient({
-  defaultOptions,
+  defaultOptions
 });

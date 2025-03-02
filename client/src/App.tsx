@@ -1,14 +1,33 @@
+// /PythonLibraryExplorer/client/src/App.tsx
 import { queryClient } from "./lib/queryClient";
 import { QueryClientProvider } from "@tanstack/react-query";
 import { Toaster } from "@/components/ui/toaster";
 import ModuleExplorer from "@/pages/ModuleExplorer";
 import { useEffect, useState } from "react";
+import { useVenvStore } from '@/lib/store';
+import { VirtualEnvManager } from '@/components/VirtualEnvManager';
 
 // Check if we're running as a Chrome extension
 const isExtension = typeof chrome !== 'undefined' && chrome.runtime && chrome.runtime.id;
 
 export default function App() {
   const [extensionError, setExtensionError] = useState<string | null>(null);
+  const { cleanupVenvs } = useVenvStore();
+
+  useEffect(() => {
+    // Cleanup on app start
+    cleanupVenvs();
+
+    // Cleanup on app close
+    const cleanup = () => {
+      cleanupVenvs();
+    };
+
+    window.addEventListener('beforeunload', cleanup);
+    return () => {
+      window.removeEventListener('beforeunload', cleanup);
+    };
+  }, [cleanupVenvs]);
 
   useEffect(() => {
     // Verify extension messaging if we're in extension mode
@@ -53,6 +72,7 @@ export default function App() {
         <ModuleExplorer />
       </div>
       <Toaster />
+      <VirtualEnvManager />
     </QueryClientProvider>
   );
 }

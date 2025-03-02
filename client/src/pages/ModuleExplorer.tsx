@@ -1,13 +1,14 @@
+// /PythonLibraryExplorer/client/src/pages/ModuleExplorer.tsx
 import { useState, useEffect } from "react";
 import { useQuery, useMutation } from "@tanstack/react-query";
 import { PackageInstaller } from "@/components/PackageInstaller";
 import { ModuleTree } from "@/components/ModuleTree";
 import { HelpDisplay } from "@/components/HelpDisplay";
 import { VirtualEnvManager } from "@/components/VirtualEnvManager";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
-import { Search, Command, KeyRound } from "lucide-react";
+import { Search, Command, KeyRound, Loader2, Package } from "lucide-react";
 import { 
   ResizableHandle, 
   ResizablePanel, 
@@ -44,20 +45,124 @@ import {
 } from "@/components/ui/select";
 import type { ModuleAttribute } from "@shared/schema";
 import { sendExtensionMessage } from "@/lib/queryClient";
+import { useToast } from "@/hooks/use-toast";
+import { useForm } from "react-hook-form";
+import { zodResolver } from "@hookform/resolvers/zod";
+import { insertPackageSchema, type InsertPackage, type VirtualEnv } from "@shared/schema";
+import { queryClient } from "@/lib/queryClient";
+import { useVenvStore } from "@/lib/store";
+import { Form, FormField, FormItem, FormLabel, FormControl, FormDescription } from "@/components/ui/form";
 
 type APIResponse<T> = {
-  success: boolean;
-  data: T;
+  data?: T;
   error?: string;
 };
 
-type SearchFilter = "all" | "function" | "class" | "method" | "property";
+type SearchFilter = "all" | "functions" | "classes" | "variables";
 
 export default function ModuleExplorer() {
   const [selectedModule, setSelectedModule] = useState<string>("");
   const [searchQuery, setSearchQuery] = useState<string>("");
   const [searchFilter, setSearchFilter] = useState<SearchFilter>("all");
   const [isCommandOpen, setIsCommandOpen] = useState(false);
+  const [installing, setInstalling] = useState(false);
+  const [packageName, setPackageName] = useState("");
+  const { toast } = useToast();
+  const { activeVenv, setActiveVenv } = useVenvStore();
+
+  // Fetch active environment on mount
+  const { data: virtualEnvs = [] } = useQuery({
+    queryKey: ["virtualEnvs"],
+    queryFn: async (): Promise<VirtualEnv[]> => {
+      const response = await fetch('/api/venv');
+      if (!response.ok) {
+        throw new Error('Failed to fetch virtual environments');
+      }
+      return response.json();
+    }
+  });
+
+  // Set active environment when data is loaded
+  useEffect(() => {
+    const active = virtualEnvs.find(env => env.isActive);
+    if (active) {
+      console.log('Found active environment:', active);
+      setActiveVenv(active);
+    }
+  }, [virtualEnvs, setActiveVenv]);
+
+  const handleInstallPackage = async () => {
+    if (!packageName.trim()) {
+      toast({
+        title: "Error",
+        description: "Please enter a package name",
+        variant: "destructive"
+      });
+      return;
+    }
+
+    if (!activeVenv) {
+      toast({
+        title: "Error",
+        description: "No active virtual environment",
+        variant: "destructive"
+      });
+      return;
+    }
+
+    setInstalling(true);
+    
+    try {
+      console.log('Installing package:', {
+        packageName,
+        envId: activeVenv.id
+      });
+      
+      const response = await fetch('/api/packages/install', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          name: packageName,
+          version: 'latest',
+          envId: activeVenv.id
+        })
+      });
+
+      const data = await response.json();
+      
+      if (!response.ok) {
+        throw new Error(data.error || 'Failed to install package');
+      }
+
+      toast({
+        title: "Success",
+        description: `Successfully installed ${packageName}`,
+      });
+      
+      setPackageName('');
+      queryClient.invalidateQueries({ queryKey: ["modules"] });
+    } catch (error: any) {
+      console.error('Installation error:', error);
+      toast({
+        title: "Installation Failed",
+        description: error.message,
+        variant: "destructive",
+      });
+    } finally {
+      setInstalling(false);
+    }
+  };
+
+  // Debug logging
+  useEffect(() => {
+    console.log('Component state:', {
+      activeVenv,
+      packageName,
+      virtualEnvs
+    });
+  }, [activeVenv, virtualEnvs, packageName]);
 
   // Command palette keyboard shortcut
   useEffect(() => {
@@ -74,22 +179,37 @@ export default function ModuleExplorer() {
   const { data: moduleData, isLoading } = useQuery<ModuleAttribute[], Error, ModuleAttribute[]>({
     queryKey: ["moduleAttributes", selectedModule],
     queryFn: async () => {
-      const response = await sendExtensionMessage("getModuleAttributes", { moduleName: selectedModule }) as APIResponse<ModuleAttribute[]>;
-      if (!response.success) throw new Error(response.error);
-      return response.data;
+      if (!selectedModule) return [];
+      const response = await sendExtensionMessage("getModuleAttributes", { moduleName: selectedModule });
+      return response as ModuleAttribute[];
     },
     enabled: !!selectedModule,
   });
 
-  const { mutate: searchModules } = useMutation<ModuleAttribute[], Error, void>({
+  const { mutate: searchModules } = useMutation({
     mutationFn: async () => {
+      if (!selectedModule || !searchQuery) {
+        throw new Error("Please enter both a module name and a search query");
+      }
       const response = await sendExtensionMessage("searchModuleAttributes", { 
         moduleName: selectedModule,
         query: searchQuery,
         filter: searchFilter
-      }) as APIResponse<ModuleAttribute[]>;
-      if (!response.success) throw new Error(response.error);
-      return response.data;
+      });
+      return response as ModuleAttribute[];
+    },
+    onSuccess: (data) => {
+      toast({
+        title: "Search Results",
+        description: `Found ${data.length} matching attributes`,
+      });
+    },
+    onError: (error: Error) => {
+      toast({
+        title: "Search Failed",
+        description: error.message,
+        variant: "destructive",
+      });
     },
   });
 
@@ -266,6 +386,58 @@ export default function ModuleExplorer() {
                 </ResizablePanel>
               </ResizablePanelGroup>
             )}
+          </CardContent>
+        </Card>
+
+        <Separator className="my-2" />
+
+        <Card>
+          <CardHeader>
+            <CardTitle>Install Package</CardTitle>
+            <CardDescription>
+              Install Python packages
+            </CardDescription>
+          </CardHeader>
+          <CardContent>
+            <div className="space-y-4">
+              <div>
+                <label className="text-sm font-medium">Package Name</label>
+                <Input 
+                  value={packageName}
+                  onChange={(e) => setPackageName(e.target.value)}
+                  placeholder="Enter package name (e.g. numpy)"
+                />
+              </div>
+
+              <Button
+                onClick={handleInstallPackage}
+                disabled={installing || !packageName.trim() || !activeVenv}
+              >
+                {installing ? (
+                  <>
+                    <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                    Installing...
+                  </>
+                ) : (
+                  <>
+                    <Package className="mr-2 h-4 w-4" />
+                    Install Package
+                  </>
+                )}
+              </Button>
+
+              {/* Raw HTML button for testing */}
+              <button
+                type="button"
+                style={{ padding: '10px', background: 'red', color: 'white', marginTop: '10px' }}
+                onClick={() => {
+                  console.log('Raw button clicked');
+                  alert('Raw button clicked');
+                }}
+              >
+                Test Click (Raw Button)
+              </button>
+            </div>
           </CardContent>
         </Card>
       </div>

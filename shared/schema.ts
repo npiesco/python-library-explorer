@@ -10,11 +10,11 @@ export const insertVirtualEnvSchema = z.object({
 export const insertPackageSchema = z.object({
   name: z.string().min(1, "Package name is required"),
   version: z.string().default("latest"),
-  envId: z.number(),
+  envId: z.string(),
 });
 
 export type VirtualEnv = {
-  id: number;
+  id: string;
   name: string;
   path: string;
   isActive: boolean;

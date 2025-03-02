@@ -1,7 +1,7 @@
 import { useState } from "react";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
-import { useMutation } from "@tanstack/react-query";
+import { useMutation, useQuery } from "@tanstack/react-query";
 import { Form, FormField, FormItem, FormLabel, FormControl } from "@/components/ui/form";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
@@ -12,26 +12,38 @@ import { Package, Download } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { queryClient } from "@/lib/queryClient";
 import { sendExtensionMessage } from "@/lib/queryClient";
+import type { VirtualEnv } from "@shared/schema";
 
 export function PackageInstaller() {
   const [installing, setInstalling] = useState(false);
   const { toast } = useToast();
 
+  // Get active environment
+  const { data: virtualEnvs = [] } = useQuery<VirtualEnv[]>({
+    queryKey: ["virtualEnvs"],
+    queryFn: async () => sendExtensionMessage("listVirtualEnvs", {}) as Promise<VirtualEnv[]>,
+  });
+
+  const activeEnv = virtualEnvs.find(env => env.isActive);
+
   const form = useForm({
     resolver: zodResolver(insertPackageSchema),
     defaultValues: {
       name: "",
-      version: "latest",
-      envId: 1,
+      version: "latest"
     },
   });
 
   const { mutate: installPackage } = useMutation({
     mutationFn: async (data: { name: string; version: string }) => {
+      if (!activeEnv?.id) {
+        throw new Error("No active virtual environment found. Please create and activate one first.");
+      }
       setInstalling(true);
       return sendExtensionMessage("installPackage", {
-        packageName: data.name,
+        name: data.name,
         version: data.version,
+        envId: activeEnv.id
       });
     },
     onSuccess: () => {
@@ -83,7 +95,12 @@ export function PackageInstaller() {
               )}
             />
 
-            <Button type="submit" disabled={installing} className="w-full">
+            <Button 
+              type="submit" 
+              disabled={installing || !activeEnv} 
+              className="w-full"
+              title={!activeEnv ? "Please create and activate a virtual environment first" : undefined}
+            >
               {installing ? (
                 <>
                   <Download className="mr-2 h-4 w-4 animate-spin" />
