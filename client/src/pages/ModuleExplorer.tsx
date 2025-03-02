@@ -183,9 +183,15 @@ export default function ModuleExplorer() {
         {/* Environment Setup Section - Collapsible */}
         <Accordion type="single" collapsible className="w-full">
           <AccordionItem value="env-setup">
-            <AccordionTrigger data-accordion-trigger>Environment Setup</AccordionTrigger>
+            <AccordionTrigger data-accordion-trigger className="flex items-center justify-between py-4 px-6 bg-muted/50 hover:bg-muted rounded-lg">
+              <div className="flex items-center gap-2">
+                <Command className="h-4 w-4" />
+                <span className="font-medium">Environment Setup</span>
+              </div>
+              <span className="text-sm text-muted-foreground">(Click to expand)</span>
+            </AccordionTrigger>
             <AccordionContent>
-              <div className="grid grid-cols-2 gap-4">
+              <div className="grid grid-cols-2 gap-4 p-4">
                 <VirtualEnvManager />
                 <PackageInstaller />
               </div>

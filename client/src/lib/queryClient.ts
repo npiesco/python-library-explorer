@@ -14,22 +14,30 @@ export async function sendExtensionMessage(type: string, data: unknown): Promise
   // Check if we're in a Chrome extension context
   if (typeof chrome === 'undefined' || !chrome.runtime?.sendMessage) {
     // Map message types to correct API endpoints and methods
-    const endpointMap: Record<string, { endpoint: string; method: string }> = {
+    type EndpointConfig = {
+      endpoint: string | ((data: any) => string);
+      method: string;
+    };
+
+    const endpointMap: Record<string, EndpointConfig> = {
       listVirtualEnvs: { endpoint: 'venv', method: 'GET' },
       createVirtualEnv: { endpoint: 'venv/create', method: 'POST' },
       setActiveVenv: { endpoint: 'venv/setActive', method: 'POST' },
       setActiveVirtualEnv: { endpoint: 'venv/setActive', method: 'POST' },
-      deleteVirtualEnv: { endpoint: 'venv', method: 'DELETE' },
+      deleteVirtualEnv: { endpoint: (data: any) => `venv/${data.id}`, method: 'DELETE' },
       installPackage: { endpoint: 'packages/install', method: 'POST' },
       getModuleAttributes: { endpoint: 'modules', method: 'GET' },
-      getModuleHelp: { endpoint: 'modules/help', method: 'GET' },
+      getModuleHelp: { endpoint: (data: any) => `modules/help/${encodeURIComponent(data.moduleName)}`, method: 'GET' },
       searchModuleAttributes: { endpoint: 'modules/search', method: 'POST' }
     };
 
     const { endpoint, method } = endpointMap[type] || { endpoint: type.toLowerCase(), method: 'POST' };
     
+    // Handle dynamic endpoints
+    const finalEndpoint = typeof endpoint === 'function' ? endpoint(data) : endpoint;
+    
     // In web mode, fallback to API calls
-    const response = await fetch(`/api/${endpoint}`, {
+    const response = await fetch(`/api/${finalEndpoint}`, {
       method,
       headers: {
         'Content-Type': 'application/json',
