@@ -98,29 +98,7 @@ export async function getModuleHelp(moduleName: string, venvPath: string): Promi
     const { stdout } = await execAsync(`${venvPath}/bin/python3 -c "
 try:
     import ${moduleName}
-    import pydoc
-    import sys
-    import io
-
-    # Capture output in a string buffer
-    buffer = io.StringIO()
-    sys.stdout = buffer
-
-    # Get the help text
-    help_text = pydoc.render_doc(${moduleName}, renderer=pydoc.plaintext)
-    
-    # Write in chunks to avoid buffer overflow
-    chunk_size = 1024 * 1024  # 1MB chunks
-    total_size = len(help_text)
-    
-    # Write the total size first
-    print(f'SIZE:{total_size}')
-    
-    # Write the content in chunks
-    for i in range(0, total_size, chunk_size):
-        chunk = help_text[i:i + chunk_size]
-        print(f'CHUNK:{chunk}')
-
+    print('\\n'.join([f'{attr}: {getattr(${moduleName}, attr).__doc__}' for attr in dir(${moduleName}) if not attr.startswith('_')]))
 except ImportError as e:
     print(f'Error: {str(e)}')
 except Exception as e:
@@ -131,25 +109,7 @@ except Exception as e:
       throw new Error(stdout.substring(7));
     }
 
-    // Parse the chunked response
-    const lines = stdout.split('\n');
-    let totalSize = 0;
-    let content = '';
-
-    for (const line of lines) {
-      if (line.startsWith('SIZE:')) {
-        totalSize = parseInt(line.substring(5), 10);
-      } else if (line.startsWith('CHUNK:')) {
-        content += line.substring(6);
-      }
-    }
-
-    // Verify we got all the content
-    if (content.length !== totalSize) {
-      console.warn(`Warning: Content size mismatch. Expected ${totalSize}, got ${content.length}`);
-    }
-
-    return content;
+    return stdout;
   } catch (error: any) {
     throw new Error(`Failed to get module help: ${error?.message || String(error)}`);
   }

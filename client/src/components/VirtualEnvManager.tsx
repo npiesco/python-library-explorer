@@ -1,5 +1,5 @@
 // /PythonLibraryExplorer/client/src/components/VirtualEnvManager.tsx
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { useQuery, useMutation } from "@tanstack/react-query";
@@ -17,7 +17,6 @@ import { useVenvStore } from "@/lib/store";
 export function VirtualEnvManager() {
   const [creating, setCreating] = useState(false);
   const { toast } = useToast();
-  const { deactivateVenv } = useVenvStore();
 
   const form = useForm({
     resolver: zodResolver(insertVirtualEnvSchema),
@@ -32,6 +31,15 @@ export function VirtualEnvManager() {
     queryKey: ["virtualEnvs"],
     queryFn: async () => sendExtensionMessage("listVirtualEnvs", {}) as Promise<VirtualEnv[]>,
   });
+
+  useEffect(() => {
+    if (virtualEnvs) {
+      const activeEnv = virtualEnvs.find(env => env.isActive);
+      if (activeEnv) {
+        useVenvStore.getState().setActiveVenv(activeEnv);
+      }
+    }
+  }, [virtualEnvs]);
 
   const { mutate: createVenv } = useMutation({
     mutationFn: async (data: { name: string; path: string }) => {
