@@ -1,7 +1,6 @@
 // /PythonLibraryExplorer/client/src/components/HelpDisplay.tsx
 import { useQuery } from "@tanstack/react-query";
 import { ScrollArea } from "@/components/ui/scroll-area";
-import { Card, CardContent } from "@/components/ui/card";
 import { HelpCircle, ArrowDown, ArrowUp } from "lucide-react";
 import { sendExtensionMessage } from "@/lib/queryClient";
 import { useState, useEffect, useMemo, useRef } from "react";
@@ -9,6 +8,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { useDebounce } from "../hooks/use-debounce";
 import { Select, SelectTrigger, SelectValue, SelectContent, SelectItem } from "@/components/ui/select";
+import { Skeleton } from "@/components/ui/skeleton";
 
 interface HelpDisplayProps {
   module: string;
@@ -144,83 +144,95 @@ export function HelpDisplay({ module }: HelpDisplayProps) {
 
   if (!module) {
     return (
-      <div className="text-center py-8 text-muted-foreground">
-        <HelpCircle className="h-12 w-12 mx-auto mb-2" />
-        <p>Select a module or attribute to view help</p>
+      <div className="h-full flex flex-col items-center justify-center text-muted-foreground">
+        <HelpCircle className="h-12 w-12 mb-4" />
+        <p className="text-base">Select a module or attribute to view help</p>
       </div>
     );
   }
 
   if (module !== debouncedModule) {
-    return <div className="animate-pulse h-[400px] bg-muted rounded-md flex items-center justify-center">
-      <p className="text-muted-foreground">Waiting for typing to complete...</p>
-    </div>;
+    return (
+      <div className="h-full flex flex-col items-center justify-center">
+        <div className="space-y-4 w-full max-w-md">
+          <Skeleton className="h-4 w-3/4 mx-auto" />
+          <Skeleton className="h-4 w-1/2 mx-auto" />
+          <Skeleton className="h-4 w-2/3 mx-auto" />
+        </div>
+      </div>
+    );
   }
 
   if (isLoading) {
-    return <div className="animate-pulse h-[400px] bg-muted rounded-md flex items-center justify-center">
-      <p className="text-muted-foreground">Loading documentation...</p>
-    </div>;
+    return (
+      <div className="h-full flex flex-col items-center justify-center">
+        <div className="space-y-4 w-full max-w-md">
+          <Skeleton className="h-4 w-3/4 mx-auto" />
+          <Skeleton className="h-4 w-1/2 mx-auto" />
+          <Skeleton className="h-4 w-2/3 mx-auto" />
+        </div>
+      </div>
+    );
   }
 
   return (
-    <Card>
-      <CardContent className="p-4">
-        <div className="flex gap-2 mb-4">
-          <div className="flex-1 flex gap-2">
-            <Input
-              placeholder="Search in documentation..."
-              value={searchTerm}
-              onChange={(e) => setSearchTerm(e.target.value)}
-              className="flex-1"
-            />
-            <Select
-              value={searchFilter}
-              onValueChange={(value) => setSearchFilter(value as typeof searchFilter)}
-            >
-              <SelectTrigger className="w-[150px]">
-                <SelectValue placeholder="Filter by type" />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="all">All Types</SelectItem>
-                <SelectItem value="function">Functions</SelectItem>
-                <SelectItem value="class">Classes</SelectItem>
-                <SelectItem value="method">Methods</SelectItem>
-                <SelectItem value="property">Properties</SelectItem>
-              </SelectContent>
-            </Select>
-          </div>
-          {matches.length > 0 && (
-            <div className="flex items-center gap-2">
-              <span className="text-sm text-muted-foreground whitespace-nowrap">
-                {currentMatch + 1} of {matches.length}
-              </span>
-              <Button
-                variant="outline"
-                size="icon"
-                onClick={() => navigateMatch('prev')}
-              >
-                <ArrowUp className="h-4 w-4" />
-              </Button>
-              <Button
-                variant="outline"
-                size="icon"
-                onClick={() => navigateMatch('next')}
-              >
-                <ArrowDown className="h-4 w-4" />
-              </Button>
-            </div>
-          )}
+    <div className="h-full flex flex-col">
+      <div className="flex gap-2 mb-4">
+        <div className="flex-1 flex gap-2">
+          <Input
+            placeholder="Search in documentation..."
+            value={searchTerm}
+            onChange={(e) => setSearchTerm(e.target.value)}
+            className="flex-1"
+          />
+          <Select
+            value={searchFilter}
+            onValueChange={(value) => setSearchFilter(value as typeof searchFilter)}
+          >
+            <SelectTrigger className="w-[150px]">
+              <SelectValue placeholder="Filter by type" />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="all">All Types</SelectItem>
+              <SelectItem value="function">Functions</SelectItem>
+              <SelectItem value="class">Classes</SelectItem>
+              <SelectItem value="method">Methods</SelectItem>
+              <SelectItem value="property">Properties</SelectItem>
+            </SelectContent>
+          </Select>
         </div>
-        <ScrollArea className="h-[400px]" id="help-scroll-area">
-          <div ref={viewportRef} className="relative">
+        {matches.length > 0 && (
+          <div className="flex items-center gap-2">
+            <span className="text-sm text-muted-foreground whitespace-nowrap">
+              {currentMatch + 1} of {matches.length}
+            </span>
+            <Button
+              variant="outline"
+              size="icon"
+              onClick={() => navigateMatch('prev')}
+            >
+              <ArrowUp className="h-4 w-4" />
+            </Button>
+            <Button
+              variant="outline"
+              size="icon"
+              onClick={() => navigateMatch('next')}
+            >
+              <ArrowDown className="h-4 w-4" />
+            </Button>
+          </div>
+        )}
+      </div>
+      <div className="flex-1 min-h-0">
+        <ScrollArea className="h-full" id="help-scroll-area">
+          <div ref={viewportRef} className="p-4">
             <pre 
-              className="whitespace-pre-wrap font-mono text-sm"
+              className="whitespace-pre-wrap font-mono text-sm leading-relaxed"
               dangerouslySetInnerHTML={{ __html: highlightedText || "" }}
             />
           </div>
         </ScrollArea>
-      </CardContent>
-    </Card>
+      </div>
+    </div>
   );
 }

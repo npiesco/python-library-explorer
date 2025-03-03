@@ -110,32 +110,32 @@ export function AppSidebar() {
   });
 
   return (
-    <Sidebar className="border-r">
+    <Sidebar className="border-r bg-background">
       <SidebarContent>
         <Collapsible defaultOpen className="group/collapsible">
           <SidebarGroup>
             <SidebarGroupLabel asChild>
-              <CollapsibleTrigger className="flex w-full items-center justify-between">
+              <CollapsibleTrigger className="flex w-full items-center justify-between text-base">
                 <span className="flex items-center gap-2">
-                  <Box className="h-4 w-4" />
+                  <Box className="h-5 w-5" />
                   Virtual Environments
                 </span>
               </CollapsibleTrigger>
             </SidebarGroupLabel>
             <CollapsibleContent>
-              <SidebarGroupContent className="space-y-2 p-2">
+              <SidebarGroupContent className="space-y-3 p-3">
                 {isLoading ? (
                   <div className="flex items-center justify-center py-4">
-                    <Loader2 className="h-4 w-4 animate-spin" />
+                    <Loader2 className="h-5 w-5 animate-spin" />
                   </div>
                 ) : (
-                  <div className="space-y-2">
+                  <div className="space-y-3">
                     {virtualEnvs.map((env) => (
                       <div key={env.id} className="flex items-center gap-2">
                         <Button
                           variant={env.isActive ? "default" : "ghost"}
-                          size="sm"
-                          className="flex-1 justify-start gap-2"
+                          size="default"
+                          className="flex-1 justify-start gap-2 text-base h-10"
                           onClick={() => {
                             if (env.isActive) {
                               setActiveVenvMutation.mutate(null);
@@ -145,20 +145,20 @@ export function AppSidebar() {
                           }}
                         >
                           <Power 
-                            className={`h-4 w-4 ${env.isActive ? "text-green-500" : "text-gray-400"}`}
+                            className={`h-5 w-5 ${env.isActive ? "text-green-500" : "text-gray-400"}`}
                           />
                           {env.name}
-                          {env.isActive && <span className="ml-auto text-xs text-muted-foreground">(active)</span>}
+                          {env.isActive && <span className="ml-auto text-sm text-muted-foreground">(active)</span>}
                         </Button>
                         <Button
                           variant="ghost"
                           size="icon"
-                          className="h-8 w-8 hover:bg-destructive hover:text-destructive-foreground"
+                          className="h-10 w-10 hover:bg-destructive hover:text-destructive-foreground"
                           onClick={() => deleteVenvMutation.mutate(env.id)}
                           disabled={env.isActive}
                           title={env.isActive ? "Cannot delete active environment" : undefined}
                         >
-                          <Trash2 className="h-4 w-4" />
+                          <Trash2 className="h-5 w-5" />
                         </Button>
                       </div>
                     ))}

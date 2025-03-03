@@ -14,6 +14,7 @@ import {
   ResizablePanel, 
   ResizablePanelGroup 
 } from "@/components/ui/resizable";
+import { Skeleton } from "@/components/ui/skeleton";
 import {
   Accordion,
   AccordionContent,
@@ -47,10 +48,11 @@ import type { ModuleAttribute, VirtualEnv } from "@shared/schema";
 import { sendExtensionMessage } from "@/lib/queryClient";
 import { useToast } from "@/hooks/use-toast";
 import { useVenvStore } from "@/lib/store";
+import { ScrollArea } from "@/components/ui/scroll-area";
 
 type SearchFilter = "all" | "functions" | "classes" | "variables";
 
-export default function ModuleExplorer() {
+export function ModuleExplorer() {
   const [selectedModule, setSelectedModule] = useState<string>("");
   const [searchQuery, setSearchQuery] = useState<string>("");
   const [searchFilter, setSearchFilter] = useState<SearchFilter>("all");
@@ -154,98 +156,139 @@ export default function ModuleExplorer() {
   ];
 
   return (
-    <TooltipProvider>
-      <div className="h-full flex flex-col space-y-4">
-        {/* Command Palette */}
-        <CommandDialog open={isCommandOpen} onOpenChange={setIsCommandOpen}>
-          <CommandInput placeholder="Type a command or search..." />
-          <CommandList>
-            <CommandEmpty>No results found.</CommandEmpty>
-            <CommandGroup heading="Actions">
-              {commands.map((cmd) => (
-                <CommandItem
-                  key={cmd.title}
-                  onSelect={() => {
-                    cmd.action();
-                    setIsCommandOpen(false);
-                  }}
-                >
-                  <span>{cmd.title}</span>
-                  <kbd className="ml-auto pointer-events-none inline-flex h-5 select-none items-center gap-1 rounded border bg-muted px-1.5 font-mono text-[10px] font-medium opacity-100">
-                    <span className="text-xs">⌘</span>{cmd.shortcut}
-                  </kbd>
-                </CommandItem>
-              ))}
-            </CommandGroup>
-          </CommandList>
-        </CommandDialog>
+    <div className="flex h-screen overflow-hidden">
+      <div className="flex-1 flex flex-col h-full">
+        <header className="flex items-center justify-between px-6 py-4 border-b bg-background">
+          <div className="flex items-center gap-4 flex-1">
+            <h1 className="text-2xl font-semibold tracking-tight">Module Explorer</h1>
+            <div className="flex-1 max-w-2xl">
+              <Input
+                type="text"
+                placeholder="Search modules..."
+                value={searchQuery}
+                onChange={(e) => setSearchQuery(e.target.value)}
+                className="w-full text-base h-10"
+              />
+            </div>
+          </div>
+          <Button
+            variant="ghost"
+            size="icon"
+            onClick={() => setIsCommandOpen(true)}
+            className="ml-2"
+          >
+            <Command className="h-5 w-5" />
+            <span className="sr-only">Open command palette</span>
+          </Button>
+        </header>
 
-        {/* Module Explorer Section */}
-        <Card>
-          <CardHeader>
-            <div className="flex items-center justify-between">
-              <CardTitle>Module Explorer</CardTitle>
-              <Tooltip>
-                <TooltipTrigger asChild>
-                  <Button
-                    variant="outline"
-                    size="icon"
-                    onClick={() => setIsCommandOpen(true)}
-                  >
-                    <Command className="h-4 w-4" />
-                  </Button>
-                </TooltipTrigger>
-                <TooltipContent>
-                  Command Palette (⌘K)
-                </TooltipContent>
-              </Tooltip>
-            </div>
-            <div className="flex gap-2 mt-2">
-              <Tooltip>
-                <TooltipTrigger asChild>
-                  <Input
-                    data-module-search
-                    placeholder="Enter module name (e.g., numpy, pandas)..."
-                    value={selectedModule}
-                    onChange={(e) => setSelectedModule(e.target.value)}
-                    className="flex-1"
-                  />
-                </TooltipTrigger>
-                <TooltipContent>
-                  Press ⌘M to focus
-                </TooltipContent>
-              </Tooltip>
-            </div>
-          </CardHeader>
-          <CardContent className="p-0">
-            {isLoading ? (
-              <div className="p-4">
-                <Progress value={33} className="w-full" />
+        <div className="flex-1 overflow-hidden">
+          <ResizablePanelGroup
+            direction="horizontal"
+            className="h-full rounded-lg"
+          >
+            <ResizablePanel
+              defaultSize={30}
+              minSize={20}
+              className="flex flex-col"
+            >
+              <div className="flex-1 flex flex-col overflow-hidden">
+                <div className="px-6 py-4 border-b">
+                  <h2 className="text-lg font-semibold">Module Structure</h2>
+                </div>
+                <ScrollArea className="flex-1">
+                  <div className="p-6">
+                    {isLoading ? (
+                      <div className="space-y-6">
+                        <div className="space-y-2">
+                          <Skeleton className="h-6 w-[80%]" />
+                          <Skeleton className="h-6 w-[70%] ml-4" />
+                          <Skeleton className="h-6 w-[60%] ml-8" />
+                        </div>
+                        <div className="space-y-2">
+                          <Skeleton className="h-6 w-[75%]" />
+                          <Skeleton className="h-6 w-[65%] ml-4" />
+                          <Skeleton className="h-6 w-[55%] ml-8" />
+                        </div>
+                      </div>
+                    ) : (
+                      <ModuleTree
+                        data={moduleData}
+                        isLoading={isLoading}
+                        onSelect={(attr) => setSelectedModule(attr)}
+                      />
+                    )}
+                  </div>
+                </ScrollArea>
               </div>
-            ) : (
-              <ResizablePanelGroup direction="horizontal" className="min-h-[600px]">
-                <ResizablePanel defaultSize={30} minSize={20}>
-                  <div className="p-4 h-full">
-                    <CardTitle className="text-sm mb-4">Module Structure</CardTitle>
-                    <ModuleTree
-                      data={moduleData}
-                      isLoading={isLoading}
-                      onSelect={(attr) => setSelectedModule(attr)}
-                    />
+            </ResizablePanel>
+
+            <ResizableHandle className="w-[2px] bg-border hover:bg-primary/10 transition-colors" />
+
+            <ResizablePanel
+              defaultSize={70}
+              className="flex flex-col"
+            >
+              <div className="flex-1 flex flex-col overflow-hidden">
+                <div className="px-6 py-4 border-b">
+                  <h2 className="text-lg font-semibold">Documentation</h2>
+                </div>
+                <ScrollArea className="flex-1">
+                  <div className="p-6">
+                    {isLoading ? (
+                      <div className="space-y-8 max-w-4xl mx-auto">
+                        <div className="space-y-2">
+                          <Skeleton className="h-8 w-[90%]" />
+                          <Skeleton className="h-6 w-[95%]" />
+                          <Skeleton className="h-6 w-[85%]" />
+                        </div>
+                        <div className="space-y-2">
+                          <Skeleton className="h-8 w-[80%]" />
+                          <Skeleton className="h-6 w-[100%]" />
+                          <Skeleton className="h-6 w-[90%]" />
+                          <Skeleton className="h-6 w-[95%]" />
+                        </div>
+                        <div className="space-y-2">
+                          <Skeleton className="h-8 w-[85%]" />
+                          <Skeleton className="h-6 w-[90%]" />
+                          <Skeleton className="h-6 w-[95%]" />
+                        </div>
+                      </div>
+                    ) : (
+                      <div className="max-w-4xl mx-auto">
+                        <HelpDisplay module={selectedModule} />
+                      </div>
+                    )}
                   </div>
-                </ResizablePanel>
-                <ResizableHandle />
-                <ResizablePanel defaultSize={70}>
-                  <div className="p-4 h-full">
-                    <CardTitle className="text-sm mb-4">Documentation</CardTitle>
-                    <HelpDisplay module={selectedModule} />
-                  </div>
-                </ResizablePanel>
-              </ResizablePanelGroup>
-            )}
-          </CardContent>
-        </Card>
+                </ScrollArea>
+              </div>
+            </ResizablePanel>
+          </ResizablePanelGroup>
+        </div>
       </div>
-    </TooltipProvider>
+
+      <CommandDialog open={isCommandOpen} onOpenChange={setIsCommandOpen}>
+        <CommandInput placeholder="Type a command or search..." />
+        <CommandList>
+          <CommandEmpty>No results found.</CommandEmpty>
+          <CommandGroup heading="Actions">
+            {commands.map((cmd) => (
+              <CommandItem
+                key={cmd.title}
+                onSelect={() => {
+                  cmd.action();
+                  setIsCommandOpen(false);
+                }}
+              >
+                <span>{cmd.title}</span>
+                <kbd className="ml-auto pointer-events-none inline-flex h-5 select-none items-center gap-1 rounded border bg-muted px-1.5 font-mono text-[10px] font-medium opacity-100">
+                  <span className="text-xs">⌘</span>{cmd.shortcut}
+                </kbd>
+              </CommandItem>
+            ))}
+          </CommandGroup>
+        </CommandList>
+      </CommandDialog>
+    </div>
   );
 }
