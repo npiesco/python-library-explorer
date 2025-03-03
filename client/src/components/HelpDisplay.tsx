@@ -7,7 +7,6 @@ import { useState, useEffect, useMemo, useRef } from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { useDebounce } from "../hooks/use-debounce";
-import { Select, SelectTrigger, SelectValue, SelectContent, SelectItem } from "@/components/ui/select";
 import { Skeleton } from "@/components/ui/skeleton";
 
 interface HelpDisplayProps {
@@ -17,7 +16,6 @@ interface HelpDisplayProps {
 export function HelpDisplay({ module }: HelpDisplayProps) {
   const [searchTerm, setSearchTerm] = useState("");
   const [currentMatch, setCurrentMatch] = useState(0);
-  const [searchFilter, setSearchFilter] = useState<"all" | "function" | "class" | "method" | "property">("all");
   const debouncedModule = useDebounce(module, 500);
   const viewportRef = useRef<HTMLDivElement>(null);
 
@@ -45,24 +43,16 @@ export function HelpDisplay({ module }: HelpDisplayProps) {
 
     for (let lineNum = 0; lineNum < lines.length; lineNum++) {
       const line = lines[lineNum];
-      const shouldIncludeLine = searchFilter === 'all' ||
-        (searchFilter === 'function' && line.includes('function')) ||
-        (searchFilter === 'class' && line.includes('class')) ||
-        (searchFilter === 'method' && line.includes('method')) ||
-        (searchFilter === 'property' && line.includes('property'));
-
-      if (shouldIncludeLine) {
-        while ((match = regex.exec(line)) !== null) {
-          matches.push({ 
-            index: currentIndex + match.index,
-            line: lineNum
-          });
-        }
+      while ((match = regex.exec(line)) !== null) {
+        matches.push({ 
+          index: currentIndex + match.index,
+          line: lineNum
+        });
       }
       currentIndex += line.length + 1;
     }
     return matches;
-  }, [helpText, searchTerm, searchFilter]);
+  }, [helpText, searchTerm]);
 
   const navigateMatch = (direction: 'next' | 'prev') => {
     if (matches.length === 0) return;
@@ -85,18 +75,12 @@ export function HelpDisplay({ module }: HelpDisplayProps) {
   };
 
   const highlightedText = useMemo(() => {
-    if (!helpText || !searchTerm) return helpText as string;
-    
+    if (!helpText || !searchTerm) return helpText;
+
     const lines = (helpText as string).split('\n');
     let currentIndex = 0;
-    const highlightedLines = lines.map((line, lineNum) => {
-      const shouldIncludeLine = searchFilter === 'all' ||
-        (searchFilter === 'function' && line.includes('function')) ||
-        (searchFilter === 'class' && line.includes('class')) ||
-        (searchFilter === 'method' && line.includes('method')) ||
-        (searchFilter === 'property' && line.includes('property'));
-
-      if (!shouldIncludeLine) {
+    const highlightedLines = lines.map((line) => {
+      if (!searchTerm) {
         currentIndex += line.length + 1;
         return line;
       }
@@ -106,10 +90,13 @@ export function HelpDisplay({ module }: HelpDisplayProps) {
       let result = '';
       let match: RegExpExecArray | null;
 
-      while ((match = regex.exec(line)) !== null) {
+      while ((match = regex.exec(line)) !== null && match) {
         const matchIndex = matches.findIndex(m => 
-          m.line === lineNum && m.index === currentIndex + (match?.index || 0)
+          m.index === currentIndex + match!.index
         );
+        
+        if (matchIndex === -1) continue;
+        
         const isCurrentMatch = matchIndex === currentMatch;
         
         result += line.slice(lastIndex, match.index);
@@ -123,7 +110,7 @@ export function HelpDisplay({ module }: HelpDisplayProps) {
     });
 
     return highlightedLines.join('\n');
-  }, [helpText, searchTerm, searchFilter, currentMatch, matches]);
+  }, [helpText, searchTerm, currentMatch, matches]);
 
   if (!module) {
     return (
@@ -186,30 +173,6 @@ export function HelpDisplay({ module }: HelpDisplayProps) {
   return (
     <div id="help-main-container" className="flex h-full flex-col">
       <div className="flex gap-2 mb-4">
-        <div className="flex-1 flex gap-2">
-          <Input
-            type="text"
-            placeholder="Search help text..."
-            value={searchTerm}
-            onChange={(e) => setSearchTerm(e.target.value)}
-            className="flex-1"
-          />
-          <Select
-            value={searchFilter}
-            onValueChange={(value) => setSearchFilter(value as typeof searchFilter)}
-          >
-            <SelectTrigger className="w-[150px]">
-              <SelectValue placeholder="Filter by type" />
-            </SelectTrigger>
-            <SelectContent>
-              <SelectItem value="all">All Types</SelectItem>
-              <SelectItem value="function">Functions</SelectItem>
-              <SelectItem value="class">Classes</SelectItem>
-              <SelectItem value="method">Methods</SelectItem>
-              <SelectItem value="property">Properties</SelectItem>
-            </SelectContent>
-          </Select>
-        </div>
         {matches.length > 0 && (
           <div className="flex items-center gap-2">
             <span className="text-sm text-muted-foreground whitespace-nowrap">
@@ -231,12 +194,21 @@ export function HelpDisplay({ module }: HelpDisplayProps) {
             </Button>
           </div>
         )}
+        <div className="flex-1">
+          <Input
+            type="text"
+            placeholder="Search help text..."
+            value={searchTerm}
+            onChange={(e) => setSearchTerm(e.target.value)}
+            className="flex-1"
+          />
+        </div>
       </div>
       <div className="flex-1 min-h-0 relative">
         <ScrollArea className="absolute inset-0">
-          <div id="content-container" ref={viewportRef} className="p-4">
+          <div id="content-container" ref={viewportRef} className="p-4 w-full">
             <pre 
-              className="whitespace-pre-wrap font-mono text-sm leading-relaxed break-words max-w-full"
+              className="whitespace-pre-wrap font-mono text-sm leading-relaxed break-words w-full"
               dangerouslySetInnerHTML={{ __html: highlightedText || "" }}
             />
           </div>

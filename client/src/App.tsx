@@ -6,7 +6,10 @@ import { ModuleExplorer } from "@/pages/ModuleExplorer";
 import { useEffect } from "react";
 import { useVenvStore } from '@/lib/store';
 import { queryClient } from "@/lib/queryClient";
-import { Toaster } from "sonner";
+import { MainNav } from "@/components/MainNav";
+import { ThemeProvider } from "@/components/ThemeProvider";
+import { ThemeToggle } from "@/components/ThemeToggle";
+import { Separator } from "@/components/ui/separator";
 
 export default function App() {
   const { cleanupVenvs } = useVenvStore();
@@ -26,15 +29,27 @@ export default function App() {
 
   return (
     <QueryClientProvider client={queryClient}>
-      <SidebarProvider>
-        <div className="flex h-screen">
-          <AppSidebar />
-          <main className="flex-1 overflow-auto p-4">
-            <ModuleExplorer />
-          </main>
-        </div>
-      </SidebarProvider>
-      <Toaster />
+      <ThemeProvider defaultTheme="system" storageKey="app-theme">
+        <SidebarProvider>
+          <div className="flex h-screen flex-col">
+            <header className="sticky top-0 z-50 w-full border-b bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60">
+              <div className="container flex h-14 items-center">
+                <MainNav />
+                <div className="flex flex-1 items-center justify-between space-x-2 md:justify-end">
+                  <ThemeToggle />
+                </div>
+              </div>
+            </header>
+            <Separator />
+            <div className="flex flex-1 overflow-hidden">
+              <AppSidebar />
+              <main className="flex-1">
+                <ModuleExplorer />
+              </main>
+            </div>
+          </div>
+        </SidebarProvider>
+      </ThemeProvider>
     </QueryClientProvider>
   );
 }

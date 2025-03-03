@@ -6,11 +6,7 @@ import { HelpDisplay } from "@/components/HelpDisplay";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { Command } from "lucide-react";
-import { 
-  ResizableHandle, 
-  ResizablePanel, 
-  ResizablePanelGroup,
-} from "@/components/ui/resizable";
+import { Separator } from "@/components/ui/separator";
 import { Skeleton } from "@/components/ui/skeleton";
 import {
   CommandDialog,
@@ -25,17 +21,12 @@ import { DialogTitle, DialogDescription } from "@/components/ui/dialog";
 import type { ModuleAttribute, VirtualEnv } from "@shared/schema";
 import { sendExtensionMessage } from "@/lib/queryClient";
 import { useToast } from "@/hooks/use-toast";
-import { useVenvStore } from "@/lib/store";
-
-type SearchFilter = "all" | "functions" | "classes" | "variables";
 
 export function ModuleExplorer() {
   const [selectedModule, setSelectedModule] = useState<string>("");
   const [searchQuery, setSearchQuery] = useState<string>("");
-  const [searchFilter, setSearchFilter] = useState<SearchFilter>("all");
   const [isCommandOpen, setIsCommandOpen] = useState(false);
   const { toast } = useToast();
-  const { activeVenv } = useVenvStore();
 
   // Fetch active environment on mount
   const { data: virtualEnvs = [] } = useQuery<VirtualEnv[]>({
@@ -83,8 +74,7 @@ export function ModuleExplorer() {
       }
       const response = await sendExtensionMessage("searchModuleAttributes", { 
         moduleName: selectedModule,
-        query: searchQuery,
-        filter: searchFilter
+        query: searchQuery
       });
       return response as ModuleAttribute[];
     },
@@ -115,15 +105,9 @@ export function ModuleExplorer() {
       shortcut: "M"
     },
     {
-      title: "Focus Attribute Search",
-      action: () => document.querySelector<HTMLInputElement>('[data-attribute-search]')?.focus(),
-      shortcut: "F"
-    },
-    {
       title: "Clear Search",
       action: () => {
         setSearchQuery("");
-        setSearchFilter("all");
       },
       shortcut: "C"
     }
@@ -131,75 +115,48 @@ export function ModuleExplorer() {
 
   return (
     <div className="flex h-full">
-      <ResizablePanelGroup direction="horizontal">
-        <ResizablePanel
-          defaultSize={25}
-          minSize={20}
-          maxSize={30}
-          className="bg-background"
-        >
-          <div className="flex h-full flex-col gap-4 p-6">
-            <div className="flex gap-2 w-[75%]">
-              <Input
-                type="text"
-                placeholder="Enter module name (e.g., numpy, pandas)..."
-                value={selectedModule}
-                onChange={(e) => setSelectedModule(e.target.value)}
-                className="flex-1 text-base"
-                data-module-search
-              />
-              <Button
-                variant="outline"
-                size="icon"
-                onClick={() => setIsCommandOpen(true)}
-                className="h-10 w-10"
-              >
-                <Command className="h-5 w-5" />
-              </Button>
-            </div>
-            <div className="flex-1 min-h-0 overflow-auto">
-              {isLoading ? (
-                <div className="space-y-2 p-4">
-                  <Skeleton className="h-4 w-full" />
-                  <Skeleton className="h-4 w-3/4" />
-                  <Skeleton className="h-4 w-1/2" />
-                  <Skeleton className="h-4 w-2/3" />
-                  <Skeleton className="h-4 w-4/5" />
-                </div>
-              ) : (
-                <ModuleTree
-                  data={moduleData}
-                  isLoading={isLoading}
-                  onSelect={(attr) => setSelectedModule(attr)}
-                />
-              )}
-            </div>
+      <div className="w-80 border-r bg-background p-4">
+        <div className="flex flex-col h-full gap-4">
+          <div className="flex gap-2">
+            <Input
+              type="text"
+              placeholder="Enter module name..."
+              value={selectedModule}
+              onChange={(e) => setSelectedModule(e.target.value)}
+              className="flex-1"
+              data-module-search
+            />
+            <Button
+              variant="outline"
+              size="icon"
+              onClick={() => setIsCommandOpen(true)}
+              className="h-10 w-10 flex-shrink-0"
+            >
+              <Command className="h-5 w-5" />
+            </Button>
           </div>
-        </ResizablePanel>
-        <ResizableHandle className="w-[2px] bg-border hover:bg-primary/10 transition-colors" />
-        <ResizablePanel
-          defaultSize={70}
-          minSize={70}
-          maxSize={70}
-          className="bg-background"
-        >
-          <div className="flex h-full flex-col">
-            <div className="p-4 border-b">
-              <Input
-                type="text"
-                placeholder="Search in documentation..."
-                value={searchQuery}
-                onChange={(e) => setSearchQuery(e.target.value)}
-                className="max-w-xl"
-                data-attribute-search
+          <Separator className="my-2" />
+          <div className="flex-1 overflow-auto">
+            {isLoading ? (
+              <div className="space-y-2">
+                <Skeleton className="h-4 w-full" />
+                <Skeleton className="h-4 w-3/4" />
+                <Skeleton className="h-4 w-1/2" />
+              </div>
+            ) : (
+              <ModuleTree
+                data={moduleData}
+                isLoading={isLoading}
+                onSelect={(attr) => setSelectedModule(attr)}
               />
-            </div>
-            <div className="flex-1 overflow-auto">
-              <HelpDisplay module={selectedModule} />
-            </div>
+            )}
           </div>
-        </ResizablePanel>
-      </ResizablePanelGroup>
+        </div>
+      </div>
+      <Separator orientation="vertical" />
+      <div className="flex-1 p-4 bg-background">
+        <HelpDisplay module={selectedModule} />
+      </div>
 
       <CommandDialog open={isCommandOpen} onOpenChange={setIsCommandOpen}>
         <div className="sr-only">
