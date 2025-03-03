@@ -40,10 +40,11 @@ export function HelpDisplay({ module }: HelpDisplayProps) {
     if (!helpText || !searchTerm) return [];
     const regex = new RegExp(searchTerm, 'gi');
     const matches: Array<{ index: number, line: number }> = [];
+    let match: RegExpExecArray | null;
 
     // Split the help text into lines
     const lines = (helpText as string).split('\n');
-    let cumulativeIndex = 0;
+    let currentIndex = 0;
 
     for (let lineNum = 0; lineNum < lines.length; lineNum++) {
       const line = lines[lineNum];
@@ -55,16 +56,14 @@ export function HelpDisplay({ module }: HelpDisplayProps) {
         (searchFilter === 'property' && line.includes('property'));
 
       if (shouldIncludeLine) {
-        let match;
-        regex.lastIndex = 0; // Reset regex state
         while ((match = regex.exec(line)) !== null) {
           matches.push({ 
-            index: cumulativeIndex + match.index,
+            index: currentIndex + match.index,
             line: lineNum
           });
         }
       }
-      cumulativeIndex += line.length + 1; // +1 for newline
+      currentIndex += line.length + 1; // +1 for newline
     }
     return matches;
   }, [helpText, searchTerm, searchFilter]);
@@ -83,7 +82,7 @@ export function HelpDisplay({ module }: HelpDisplayProps) {
 
     // Wait for the DOM to update
     setTimeout(() => {
-      const matchElement = document.querySelector(`[data-match-index="${newMatch}"]`);
+      const matchElement = viewportRef.current?.querySelector(`[data-match-index="${newMatch}"]`);
       console.log('Found match element:', !!matchElement);
       if (matchElement) {
         console.log('Match element position:', matchElement.getBoundingClientRect());
@@ -92,7 +91,7 @@ export function HelpDisplay({ module }: HelpDisplayProps) {
           block: 'center'
         });
       }
-    }, 50);
+    }, 50); // Increased timeout to ensure DOM updates
   };
 
   const highlightedText = useMemo(() => {
@@ -104,8 +103,7 @@ export function HelpDisplay({ module }: HelpDisplayProps) {
     
     // Split the help text into lines
     const lines = (helpText as string).split('\n');
-    let cumulativeIndex = 0;
-    
+    let currentIndex = 0;
     const highlightedLines = lines.map((line, lineNum) => {
       // Check if line matches the type filter
       const shouldIncludeLine = searchFilter === 'all' ||
@@ -115,19 +113,20 @@ export function HelpDisplay({ module }: HelpDisplayProps) {
         (searchFilter === 'property' && line.includes('property'));
 
       if (!shouldIncludeLine) {
-        cumulativeIndex += line.length + 1;
+        currentIndex += line.length + 1; // +1 for newline
         return line;
       }
 
       const regex = new RegExp(`(${searchTerm})`, 'gi');
       let lastIndex = 0;
       let result = '';
-      let match;
+      let match: RegExpExecArray | null;
 
       while ((match = regex.exec(line)) !== null) {
-        const globalIndex = cumulativeIndex + match.index;
-        const matchIndex = matches.findIndex(m => m.index === globalIndex);
-        console.log('Match found in line', lineNum, 'at index', matchIndex);
+        const matchIndex = matches.findIndex(m => 
+          m.line === lineNum && m.index === currentIndex + (match?.index || 0)
+        );
+        console.log(`Match found in line ${lineNum} at index ${match.index}, matchIndex: ${matchIndex}`);
         const isCurrentMatch = matchIndex === currentMatch;
         
         result += line.slice(lastIndex, match.index);
@@ -136,7 +135,7 @@ export function HelpDisplay({ module }: HelpDisplayProps) {
       }
 
       result += line.slice(lastIndex);
-      cumulativeIndex += line.length + 1;
+      currentIndex += line.length + 1; // +1 for newline
       return result || line;
     });
 
