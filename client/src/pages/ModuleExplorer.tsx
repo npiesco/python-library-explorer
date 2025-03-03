@@ -1,28 +1,17 @@
 // /PythonLibraryExplorer/client/src/pages/ModuleExplorer.tsx
 import { useState, useEffect } from "react";
 import { useQuery, useMutation } from "@tanstack/react-query";
-import { PackageInstaller } from "@/components/PackageInstaller";
 import { ModuleTree } from "@/components/ModuleTree";
 import { HelpDisplay } from "@/components/HelpDisplay";
-import { VirtualEnvManager } from "@/components/VirtualEnvManager";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
-import { Search, Command } from "lucide-react";
+import { Command } from "lucide-react";
 import { 
   ResizableHandle, 
   ResizablePanel, 
-  ResizablePanelGroup 
+  ResizablePanelGroup,
 } from "@/components/ui/resizable";
 import { Skeleton } from "@/components/ui/skeleton";
-import {
-  Accordion,
-  AccordionContent,
-  AccordionItem,
-  AccordionTrigger,
-} from "@/components/ui/accordion";
-import { Separator } from "@/components/ui/separator";
-import { Progress } from "@/components/ui/progress";
 import {
   CommandDialog,
   CommandEmpty,
@@ -31,24 +20,12 @@ import {
   CommandItem,
   CommandList,
 } from "@/components/ui/command";
-import {
-  Tooltip,
-  TooltipContent,
-  TooltipProvider,
-  TooltipTrigger,
-} from "@/components/ui/tooltip";
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "@/components/ui/select";
+import { DialogTitle, DialogDescription } from "@/components/ui/dialog";
+
 import type { ModuleAttribute, VirtualEnv } from "@shared/schema";
 import { sendExtensionMessage } from "@/lib/queryClient";
 import { useToast } from "@/hooks/use-toast";
 import { useVenvStore } from "@/lib/store";
-import { ScrollArea } from "@/components/ui/scroll-area";
 
 type SearchFilter = "all" | "functions" | "classes" | "variables";
 
@@ -72,12 +49,19 @@ export function ModuleExplorer() {
     }
   });
 
+  const { data: moduleData, isLoading } = useQuery<ModuleAttribute[], Error, ModuleAttribute[]>({
+    queryKey: ["moduleAttributes", selectedModule],
+    queryFn: async () => {
+      if (!selectedModule) return [];
+      const response = await sendExtensionMessage("getModuleAttributes", { moduleName: selectedModule });
+      return response as ModuleAttribute[];
+    },
+    enabled: !!selectedModule,
+  });
+
   // Set active environment when data is loaded
   useEffect(() => {
     const active = virtualEnvs.find(env => env.isActive);
-    if (active) {
-      console.log('Found active environment:', active);
-    }
   }, [virtualEnvs]);
 
   // Command palette keyboard shortcut
@@ -91,16 +75,6 @@ export function ModuleExplorer() {
     document.addEventListener("keydown", down);
     return () => document.removeEventListener("keydown", down);
   }, []);
-
-  const { data: moduleData, isLoading } = useQuery<ModuleAttribute[], Error, ModuleAttribute[]>({
-    queryKey: ["moduleAttributes", selectedModule],
-    queryFn: async () => {
-      if (!selectedModule) return [];
-      const response = await sendExtensionMessage("getModuleAttributes", { moduleName: selectedModule });
-      return response as ModuleAttribute[];
-    },
-    enabled: !!selectedModule,
-  });
 
   const { mutate: searchModules } = useMutation({
     mutationFn: async () => {
@@ -156,118 +130,84 @@ export function ModuleExplorer() {
   ];
 
   return (
-    <div className="flex h-screen overflow-hidden">
-      <div className="flex-1 flex flex-col h-full">
-        <header className="flex items-center justify-between px-6 py-4 border-b bg-background">
-          <div className="flex items-center gap-4 flex-1">
-            <h1 className="text-2xl font-semibold tracking-tight">Module Explorer</h1>
-            <div className="flex-1 max-w-2xl">
+    <div className="flex h-full">
+      <ResizablePanelGroup direction="horizontal">
+        <ResizablePanel
+          defaultSize={25}
+          minSize={20}
+          maxSize={30}
+          className="bg-background"
+        >
+          <div className="flex h-full flex-col gap-4 p-6">
+            <div className="flex gap-2 w-[75%]">
               <Input
                 type="text"
-                placeholder="Search modules..."
-                value={searchQuery}
-                onChange={(e) => setSearchQuery(e.target.value)}
-                className="w-full text-base h-10"
+                placeholder="Enter module name (e.g., numpy, pandas)..."
+                value={selectedModule}
+                onChange={(e) => setSelectedModule(e.target.value)}
+                className="flex-1 text-base"
+                data-module-search
               />
+              <Button
+                variant="outline"
+                size="icon"
+                onClick={() => setIsCommandOpen(true)}
+                className="h-10 w-10"
+              >
+                <Command className="h-5 w-5" />
+              </Button>
+            </div>
+            <div className="flex-1 min-h-0 overflow-auto">
+              {isLoading ? (
+                <div className="space-y-2 p-4">
+                  <Skeleton className="h-4 w-full" />
+                  <Skeleton className="h-4 w-3/4" />
+                  <Skeleton className="h-4 w-1/2" />
+                  <Skeleton className="h-4 w-2/3" />
+                  <Skeleton className="h-4 w-4/5" />
+                </div>
+              ) : (
+                <ModuleTree
+                  data={moduleData}
+                  isLoading={isLoading}
+                  onSelect={(attr) => setSelectedModule(attr)}
+                />
+              )}
             </div>
           </div>
-          <Button
-            variant="ghost"
-            size="icon"
-            onClick={() => setIsCommandOpen(true)}
-            className="ml-2"
-          >
-            <Command className="h-5 w-5" />
-            <span className="sr-only">Open command palette</span>
-          </Button>
-        </header>
-
-        <div className="flex-1 overflow-hidden">
-          <ResizablePanelGroup
-            direction="horizontal"
-            className="h-full rounded-lg"
-          >
-            <ResizablePanel
-              defaultSize={30}
-              minSize={20}
-              className="flex flex-col"
-            >
-              <div className="flex-1 flex flex-col overflow-hidden">
-                <div className="px-6 py-4 border-b">
-                  <h2 className="text-lg font-semibold">Module Structure</h2>
-                </div>
-                <ScrollArea className="flex-1">
-                  <div className="p-6">
-                    {isLoading ? (
-                      <div className="space-y-6">
-                        <div className="space-y-2">
-                          <Skeleton className="h-6 w-[80%]" />
-                          <Skeleton className="h-6 w-[70%] ml-4" />
-                          <Skeleton className="h-6 w-[60%] ml-8" />
-                        </div>
-                        <div className="space-y-2">
-                          <Skeleton className="h-6 w-[75%]" />
-                          <Skeleton className="h-6 w-[65%] ml-4" />
-                          <Skeleton className="h-6 w-[55%] ml-8" />
-                        </div>
-                      </div>
-                    ) : (
-                      <ModuleTree
-                        data={moduleData}
-                        isLoading={isLoading}
-                        onSelect={(attr) => setSelectedModule(attr)}
-                      />
-                    )}
-                  </div>
-                </ScrollArea>
-              </div>
-            </ResizablePanel>
-
-            <ResizableHandle className="w-[2px] bg-border hover:bg-primary/10 transition-colors" />
-
-            <ResizablePanel
-              defaultSize={70}
-              className="flex flex-col"
-            >
-              <div className="flex-1 flex flex-col overflow-hidden">
-                <div className="px-6 py-4 border-b">
-                  <h2 className="text-lg font-semibold">Documentation</h2>
-                </div>
-                <ScrollArea className="flex-1">
-                  <div className="p-6">
-                    {isLoading ? (
-                      <div className="space-y-8 max-w-4xl mx-auto">
-                        <div className="space-y-2">
-                          <Skeleton className="h-8 w-[90%]" />
-                          <Skeleton className="h-6 w-[95%]" />
-                          <Skeleton className="h-6 w-[85%]" />
-                        </div>
-                        <div className="space-y-2">
-                          <Skeleton className="h-8 w-[80%]" />
-                          <Skeleton className="h-6 w-[100%]" />
-                          <Skeleton className="h-6 w-[90%]" />
-                          <Skeleton className="h-6 w-[95%]" />
-                        </div>
-                        <div className="space-y-2">
-                          <Skeleton className="h-8 w-[85%]" />
-                          <Skeleton className="h-6 w-[90%]" />
-                          <Skeleton className="h-6 w-[95%]" />
-                        </div>
-                      </div>
-                    ) : (
-                      <div className="max-w-4xl mx-auto">
-                        <HelpDisplay module={selectedModule} />
-                      </div>
-                    )}
-                  </div>
-                </ScrollArea>
-              </div>
-            </ResizablePanel>
-          </ResizablePanelGroup>
-        </div>
-      </div>
+        </ResizablePanel>
+        <ResizableHandle className="w-[2px] bg-border hover:bg-primary/10 transition-colors" />
+        <ResizablePanel
+          defaultSize={70}
+          minSize={70}
+          maxSize={70}
+          className="bg-background"
+        >
+          <div className="flex h-full flex-col">
+            <div className="p-4 border-b">
+              <Input
+                type="text"
+                placeholder="Search in documentation..."
+                value={searchQuery}
+                onChange={(e) => setSearchQuery(e.target.value)}
+                className="max-w-xl"
+                data-attribute-search
+              />
+            </div>
+            <div className="flex-1 overflow-auto">
+              <HelpDisplay module={selectedModule} />
+            </div>
+          </div>
+        </ResizablePanel>
+      </ResizablePanelGroup>
 
       <CommandDialog open={isCommandOpen} onOpenChange={setIsCommandOpen}>
+        <div className="sr-only">
+          <DialogTitle>Command Palette</DialogTitle>
+          <DialogDescription>
+            Search for commands or use keyboard shortcuts to perform actions.
+          </DialogDescription>
+        </div>
         <CommandInput placeholder="Type a command or search..." />
         <CommandList>
           <CommandEmpty>No results found.</CommandEmpty>
