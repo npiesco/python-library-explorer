@@ -13,6 +13,11 @@ export const insertPackageSchema = z.object({
   envId: z.string(),
 });
 
+export type PackageInfo = {
+  name: string;
+  version: string;
+};
+
 export type VirtualEnv = {
   id: string;
   name: string;
@@ -20,6 +25,8 @@ export type VirtualEnv = {
   isActive: boolean;
   createdAt: Date;
   updatedAt: Date;
+  packages?: PackageInfo[];
+  pythonVersion?: string;
 };
 
 export type InsertVirtualEnv = z.infer<typeof insertVirtualEnvSchema>;

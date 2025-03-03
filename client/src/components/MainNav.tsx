@@ -7,72 +7,138 @@ import {
   NavigationMenuLink,
   NavigationMenuList,
   NavigationMenuTrigger,
-  navigationMenuTriggerStyle,
 } from "@/components/ui/navigation-menu"
 import { Box, Package, Settings } from "lucide-react"
+import { useQuery } from "@tanstack/react-query"
+import { useVenvStore } from "@/lib/store"
+import { ThemeToggle } from "./ThemeToggle"
+import { format } from "date-fns"
+import { Skeleton } from "./ui/skeleton"
+import type { VirtualEnv, PackageInfo } from "@shared/schema"
 
 export function MainNav() {
+  const { data: virtualEnvs = [], isLoading } = useQuery<VirtualEnv[]>({
+    queryKey: ['virtualEnvs'] as const,
+    queryFn: async () => {
+      const response = await fetch('/api/venv');
+      return response.json();
+    }
+  });
+
+  const activeEnv = virtualEnvs.find((env: VirtualEnv) => env.isActive);
+
   return (
-    <NavigationMenu>
-      <NavigationMenuList>
-        <NavigationMenuItem>
-          <NavigationMenuTrigger>
-            <Box className="mr-2 h-4 w-4" />
-            Module Explorer
-          </NavigationMenuTrigger>
-          <NavigationMenuContent>
-            <ul className="grid gap-3 p-4 w-[400px]">
-              <li className="row-span-3">
-                <NavigationMenuLink asChild>
-                  <a
-                    className="flex h-full w-full select-none flex-col justify-end rounded-md bg-gradient-to-b from-muted/50 to-muted p-6 no-underline outline-none focus:shadow-md"
-                    href="/"
-                  >
-                    <div className="mb-2 mt-4 text-lg font-medium">
-                      Python Library Explorer
+    <div className="flex flex-1 items-center justify-between">
+      <NavigationMenu>
+        <NavigationMenuList>
+          <NavigationMenuItem>
+            <NavigationMenuTrigger>
+              <Package className="mr-2 h-4 w-4" />
+              Installed
+            </NavigationMenuTrigger>
+            <NavigationMenuContent>
+              <div className="w-[400px] p-4">
+                <div className="text-sm text-muted-foreground mb-4">
+                  {activeEnv ? (
+                    <>Packages installed in {activeEnv.name}</>
+                  ) : (
+                    <>No active environment selected</>
+                  )}
+                </div>
+                {activeEnv ? (
+                  <div className="space-y-2">
+                    {activeEnv.packages?.map((pkg: PackageInfo) => (
+                      <div key={pkg.name} className="flex items-center justify-between">
+                        <span className="font-mono text-sm">{pkg.name}</span>
+                        <span className="text-xs text-muted-foreground">{pkg.version}</span>
+                      </div>
+                    )) ?? (
+                      <div className="text-sm text-muted-foreground">No packages installed</div>
+                    )}
+                  </div>
+                ) : null}
+              </div>
+            </NavigationMenuContent>
+          </NavigationMenuItem>
+
+          <NavigationMenuItem>
+            <NavigationMenuTrigger>
+              <Box className="mr-2 h-4 w-4" />
+              Environment
+            </NavigationMenuTrigger>
+            <NavigationMenuContent>
+              <div className="w-[400px] p-4">
+                {isLoading ? (
+                  <div className="space-y-2">
+                    <Skeleton className="h-4 w-full" />
+                    <Skeleton className="h-4 w-3/4" />
+                  </div>
+                ) : activeEnv ? (
+                  <div className="space-y-4">
+                    <div>
+                      <div className="text-sm font-medium mb-1">Active Environment</div>
+                      <div className="text-2xl font-bold">{activeEnv.name}</div>
                     </div>
-                    <p className="text-sm leading-tight text-muted-foreground">
-                      Explore Python modules, their attributes, and documentation in an interactive way.
-                    </p>
-                  </a>
-                </NavigationMenuLink>
-              </li>
-            </ul>
-          </NavigationMenuContent>
-        </NavigationMenuItem>
-        <NavigationMenuItem>
-          <NavigationMenuTrigger>
-            <Package className="mr-2 h-4 w-4" />
-            Environment
-          </NavigationMenuTrigger>
-          <NavigationMenuContent>
-            <ul className="grid w-[400px] gap-3 p-4 md:w-[500px]">
-              <li className="row-span-3">
-                <NavigationMenuLink asChild>
-                  <a
-                    className="flex h-full w-full select-none flex-col justify-end rounded-md bg-gradient-to-b from-muted/50 to-muted p-6 no-underline outline-none focus:shadow-md"
-                    href="/environments"
-                  >
-                    <div className="mb-2 mt-4 text-lg font-medium">
-                      Virtual Environments
+                    <div className="grid grid-cols-2 gap-4">
+                      <div>
+                        <div className="text-sm text-muted-foreground">Created</div>
+                        <div className="font-medium">
+                          {format(new Date(activeEnv.createdAt), 'MMM d, yyyy')}
+                        </div>
+                      </div>
+                      <div>
+                        <div className="text-sm text-muted-foreground">Packages</div>
+                        <div className="font-medium">
+                          {activeEnv.packages?.length ?? 0}
+                        </div>
+                      </div>
+                      <div>
+                        <div className="text-sm text-muted-foreground">Python Version</div>
+                        <div className="font-medium">{activeEnv.pythonVersion ?? 'Unknown'}</div>
+                      </div>
+                      <div>
+                        <div className="text-sm text-muted-foreground">Last Updated</div>
+                        <div className="font-medium">
+                          {activeEnv.updatedAt 
+                            ? format(new Date(activeEnv.updatedAt), 'MMM d, yyyy')
+                            : 'Never'}
+                        </div>
+                      </div>
                     </div>
-                    <p className="text-sm leading-tight text-muted-foreground">
-                      Manage your Python virtual environments and installed packages.
-                    </p>
-                  </a>
-                </NavigationMenuLink>
-              </li>
-            </ul>
-          </NavigationMenuContent>
-        </NavigationMenuItem>
-        <NavigationMenuItem>
-          <NavigationMenuLink className={navigationMenuTriggerStyle()}>
-            <Settings className="mr-2 h-4 w-4" />
-            Settings
-          </NavigationMenuLink>
-        </NavigationMenuItem>
-      </NavigationMenuList>
-    </NavigationMenu>
+                  </div>
+                ) : (
+                  <div className="text-sm text-muted-foreground">
+                    No active environment selected
+                  </div>
+                )}
+              </div>
+            </NavigationMenuContent>
+          </NavigationMenuItem>
+        </NavigationMenuList>
+      </NavigationMenu>
+
+      <NavigationMenu>
+        <NavigationMenuList>
+          <NavigationMenuItem>
+            <NavigationMenuTrigger>
+              <Settings className="mr-2 h-4 w-4" />
+              Settings
+            </NavigationMenuTrigger>
+            <NavigationMenuContent>
+              <div className="w-[200px] p-4">
+                <div className="space-y-4">
+                  <div>
+                    <div className="text-sm font-medium mb-2">Theme</div>
+                    <ThemeToggle />
+                  </div>
+                  {/* Add more settings here */}
+                </div>
+              </div>
+            </NavigationMenuContent>
+          </NavigationMenuItem>
+        </NavigationMenuList>
+      </NavigationMenu>
+    </div>
   )
 }
 
